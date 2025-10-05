@@ -1,70 +1,167 @@
-# Getting Started with Create React App
+# GitLog
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A powerful GitHub repository analysis tool that provides insights and visualizations for your repositories.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- 🔐 GitHub OAuth authentication
+- 📊 Repository analysis and statistics
+- 📈 Commit history visualization
+- 🌿 Branch analysis
+- 👥 Contributor insights
+- 🎨 Modern, responsive UI
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+gitlog/
+├── client/                 # React frontend
+│   ├── public/
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/         # Page components
+│   │   ├── styles/        # Styled-components and themes
+│   │   ├── context/       # React context providers
+│   │   ├── App.jsx        # Main app component
+│   │   └── index.js       # Entry point
+│   ├── .env               # Client environment variables
+│   ├── .gitignore
+│   └── package.json
+│
+├── server/                # Express.js backend
+│   ├── controllers/       # Route controllers
+│   ├── routes/           # API routes
+│   ├── config/           # Configuration files
+│   ├── middleware/       # Custom middleware
+│   ├── .env              # Server environment variables
+│   ├── .gitignore
+│   ├── server.js         # Main server file
+│   └── package.json
+│
+└── README.md
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Getting Started
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js (v14 or higher)
+- npm or yarn
+- GitHub OAuth App
 
-### `npm run build`
+### GitHub OAuth Setup
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Create a new OAuth App with:
+   - Application name: GitLog
+   - Homepage URL: `http://localhost:3000`
+   - Authorization callback URL: `http://localhost:3000/callback`
+3. Copy the Client ID and Client Secret
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd gitlog
+```
 
-### `npm run eject`
+2. Install server dependencies:
+```bash
+cd server
+npm install
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+3. Install client dependencies:
+```bash
+cd ../client
+npm install
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+4. Configure environment variables:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**Server (.env):**
+```env
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:3000
+SESSION_SECRET=your-session-secret-key-here
+JWT_SECRET=your-jwt-secret-key-here
+GITHUB_CLIENT_ID=your_github_client_id_here
+GITHUB_CLIENT_SECRET=your_github_client_secret_here
+GITHUB_REDIRECT_URI=http://localhost:3000/callback
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+**Client (.env):**
+```env
+REACT_APP_API_URL=http://localhost:5000
+REACT_APP_GITHUB_CLIENT_ID=your_github_client_id_here
+```
 
-## Learn More
+### Running the Application
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Start the server:
+```bash
+cd server
+npm run dev
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. Start the client (in a new terminal):
+```bash
+cd client
+npm start
+```
 
-### Code Splitting
+3. Open your browser and navigate to `http://localhost:3000`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## API Endpoints
 
-### Analyzing the Bundle Size
+### Authentication
+- `GET /api/auth/github` - Initiate GitHub OAuth
+- `POST /api/auth/callback` - Handle OAuth callback
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/logout` - Logout user
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Health Check
+- `GET /api/health` - Server health status
 
-### Making a Progressive Web App
+## Technologies Used
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Frontend
+- React 18
+- React Router DOM
+- Styled Components
+- Context API
 
-### Advanced Configuration
+### Backend
+- Node.js
+- Express.js
+- Axios
+- JWT
+- Express Session
+- CORS
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Development
 
-### Deployment
+### Available Scripts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+**Client:**
+- `npm start` - Start development server
+- `npm build` - Build for production
+- `npm test` - Run tests
 
-### `npm run build` fails to minify
+**Server:**
+- `npm start` - Start production server
+- `npm run dev` - Start development server with nodemon
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
