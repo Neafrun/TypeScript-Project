@@ -1,86 +1,86 @@
 # GitLog
 
-A powerful GitHub repository analysis tool that provides insights and visualizations for your repositories.
+GitHub 저장소 분석을 위한 강력한 도구입니다.
 
-## Features
+## 기능
 
-- 🔐 GitHub OAuth authentication
-- 📊 Repository analysis and statistics
-- 📈 Commit history visualization
-- 🌿 Branch analysis
-- 👥 Contributor insights
-- 🎨 Modern, responsive UI
+- 🔐 GitHub OAuth 인증
+- 📊 저장소 분석 및 통계
+- 📈 커밋 히스토리 시각화
+- 🌿 브랜치 분석
+- 👥 기여자 인사이트
+- 🎨 모던하고 반응형 UI
 
-## Project Structure
+## 프로젝트 구조
 
 ```
 gitlog/
-├── client/                 # React frontend
+├── client/                 # React 프론트엔드
 │   ├── public/
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/         # Page components
-│   │   ├── styles/        # Styled-components and themes
-│   │   ├── context/       # React context providers
-│   │   ├── App.jsx        # Main app component
-│   │   └── index.js       # Entry point
-│   ├── .env               # Client environment variables
+│   │   ├── components/     # 재사용 가능한 UI 컴포넌트
+│   │   ├── pages/         # 페이지 컴포넌트
+│   │   ├── styles/        # 스타일드 컴포넌트 및 테마
+│   │   ├── context/       # React 컨텍스트 프로바이더
+│   │   ├── App.jsx        # 메인 앱 컴포넌트
+│   │   └── index.js       # 진입점
+│   ├── .env               # 클라이언트 환경 변수
 │   ├── .gitignore
 │   └── package.json
 │
-├── server/                # Express.js backend
-│   ├── controllers/       # Route controllers
-│   ├── routes/           # API routes
-│   ├── config/           # Configuration files
-│   ├── middleware/       # Custom middleware
-│   ├── .env              # Server environment variables
+├── server/                # Express.js 백엔드
+│   ├── controllers/       # 라우트 컨트롤러
+│   ├── routes/           # API 라우트
+│   ├── config/           # 설정 파일
+│   ├── middleware/       # 커스텀 미들웨어
+│   ├── .env              # 서버 환경 변수
 │   ├── .gitignore
-│   ├── server.js         # Main server file
+│   ├── server.js         # 메인 서버 파일
 │   └── package.json
 │
 └── README.md
 ```
 
-## Getting Started
+## 시작하기
 
-### Prerequisites
+### 사전 요구사항
 
-- Node.js (v14 or higher)
-- npm or yarn
-- GitHub OAuth App
+- Node.js (v14 이상)
+- npm 또는 yarn
+- GitHub OAuth 앱
 
-### GitHub OAuth Setup
+### GitHub OAuth 설정
 
-1. Go to GitHub Settings > Developer settings > OAuth Apps
-2. Create a new OAuth App with:
-   - Application name: GitLog
-   - Homepage URL: `http://localhost:3000`
-   - Authorization callback URL: `http://localhost:3000/callback`
-3. Copy the Client ID and Client Secret
+1. GitHub 설정 > 개발자 설정 > OAuth 앱으로 이동
+2. 새 OAuth 앱 생성:
+   - 애플리케이션 이름: GitLog
+   - 홈페이지 URL: `http://localhost:3000`
+   - 인증 콜백 URL: `http://localhost:3000/callback`
+3. 클라이언트 ID와 클라이언트 시크릿 복사
 
-### Installation
+### 설치
 
-1. Clone the repository:
+1. 저장소 클론:
 ```bash
 git clone <repository-url>
 cd gitlog
 ```
 
-2. Install server dependencies:
+2. 서버 의존성 설치:
 ```bash
 cd server
 npm install
 ```
 
-3. Install client dependencies:
+3. 클라이언트 의존성 설치:
 ```bash
 cd ../client
 npm install
 ```
 
-4. Configure environment variables:
+4. 환경 변수 설정:
 
-**Server (.env):**
+**서버 (.env):**
 ```env
 PORT=5000
 NODE_ENV=development
@@ -92,48 +92,48 @@ GITHUB_CLIENT_SECRET=your_github_client_secret_here
 GITHUB_REDIRECT_URI=http://localhost:3000/callback
 ```
 
-**Client (.env):**
+**클라이언트 (.env):**
 ```env
 REACT_APP_API_URL=http://localhost:5000
 REACT_APP_GITHUB_CLIENT_ID=your_github_client_id_here
 ```
 
-### Running the Application
+### 애플리케이션 실행
 
-1. Start the server:
+1. 서버 시작:
 ```bash
 cd server
 npm run dev
 ```
 
-2. Start the client (in a new terminal):
+2. 클라이언트 시작 (새 터미널):
 ```bash
 cd client
 npm start
 ```
 
-3. Open your browser and navigate to `http://localhost:3000`
+3. 브라우저에서 `http://localhost:3000`으로 이동
 
-## API Endpoints
+## API 엔드포인트
 
-### Authentication
-- `GET /api/auth/github` - Initiate GitHub OAuth
-- `POST /api/auth/callback` - Handle OAuth callback
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/logout` - Logout user
+### 인증
+- `GET /api/auth/github` - GitHub OAuth 시작
+- `POST /api/auth/callback` - OAuth 콜백 처리
+- `GET /api/auth/me` - 현재 사용자 가져오기
+- `POST /api/auth/logout` - 사용자 로그아웃
 
-### Health Check
-- `GET /api/health` - Server health status
+### 헬스 체크
+- `GET /api/health` - 서버 상태 확인
 
-## Technologies Used
+## 사용된 기술
 
-### Frontend
+### 프론트엔드
 - React 18
 - React Router DOM
 - Styled Components
 - Context API
 
-### Backend
+### 백엔드
 - Node.js
 - Express.js
 - Axios
@@ -141,27 +141,27 @@ npm start
 - Express Session
 - CORS
 
-## Development
+## 개발
 
-### Available Scripts
+### 사용 가능한 스크립트
 
-**Client:**
-- `npm start` - Start development server
-- `npm build` - Build for production
-- `npm test` - Run tests
+**클라이언트:**
+- `npm start` - 개발 서버 시작
+- `npm build` - 프로덕션용 빌드
+- `npm test` - 테스트 실행
 
-**Server:**
-- `npm start` - Start production server
-- `npm run dev` - Start development server with nodemon
+**서버:**
+- `npm start` - 프로덕션 서버 시작
+- `npm run dev` - nodemon으로 개발 서버 시작
 
-## Contributing
+## 기여하기
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+1. 저장소 포크
+2. 기능 브랜치 생성
+3. 변경사항 적용
+4. 테스트 추가 (해당하는 경우)
+5. 풀 리퀘스트 제출
 
-## License
+## 라이선스
 
-This project is licensed under the MIT License.
+이 프로젝트는 MIT 라이선스 하에 있습니다.

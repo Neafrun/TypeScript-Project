@@ -95,7 +95,7 @@ const Dashboard = () => {
       <DashboardContainer>
         <Header />
         <MainContent>
-          <p>Please log in to access the dashboard.</p>
+          <p>대시보드에 접근하려면 로그인해주세요.</p>
         </MainContent>
       </DashboardContainer>
     );
@@ -106,7 +106,7 @@ const Dashboard = () => {
       <Header />
       <MainContent>
         <WelcomeSection>
-          <Title>Dashboard</Title>
+          <Title>대시보드</Title>
           <UserInfo>
             <Avatar src={user.avatar_url} alt={user.login} />
             <UserDetails>
@@ -117,15 +117,15 @@ const Dashboard = () => {
         </WelcomeSection>
 
         <RepositoriesSection>
-          <h2>Your Repositories</h2>
+          <h2>저장소 목록</h2>
           <RepoList>
             <RepoItem>
-              <RepoName>sample-repo</RepoName>
-              <RepoDescription>A sample repository for demonstration</RepoDescription>
+              <RepoName>샘플-저장소</RepoName>
+              <RepoDescription>데모용 샘플 저장소입니다</RepoDescription>
             </RepoItem>
             <RepoItem>
-              <RepoName>another-repo</RepoName>
-              <RepoDescription>Another sample repository</RepoDescription>
+              <RepoName>다른-저장소</RepoName>
+              <RepoDescription>또 다른 샘플 저장소입니다</RepoDescription>
             </RepoItem>
           </RepoList>
         </RepositoriesSection>

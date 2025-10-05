@@ -51,11 +51,11 @@ const Home = () => {
       <Header />
       <MainContent>
         <HeroSection>
-          <Title>Welcome to GitLog</Title>
+          <Title>GitLog에 오신 것을 환영합니다</Title>
           <Subtitle>
-            Analyze your GitHub repositories with powerful insights and visualizations
+            강력한 인사이트와 시각화로 GitHub 저장소를 분석하세요
           </Subtitle>
-          <CTAButton>Get Started</CTAButton>
+          <CTAButton>시작하기</CTAButton>
         </HeroSection>
       </MainContent>
     </HomeContainer>

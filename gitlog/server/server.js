@@ -10,7 +10,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// 미들웨어
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
@@ -27,14 +27,14 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24시간
   },
 }));
 
-// Routes
+// 라우트
 app.use('/api/auth', authRoutes);
 
-// Health check endpoint
+// 헬스 체크 엔드포인트
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -43,21 +43,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler
+// 404 핸들러
 app.use('*', (req, res) => {
   res.status(404).json({ 
     success: false, 
-    error: 'Route not found' 
+    error: '라우트를 찾을 수 없습니다' 
   });
 });
 
-// Error handler
+// 오류 핸들러
 app.use(errorHandler);
 
-// Start server
+// 서버 시작
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`서버가 포트 ${PORT}에서 실행 중입니다`);
+  console.log(`환경: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;

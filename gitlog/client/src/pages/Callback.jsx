@@ -37,7 +37,7 @@ const Callback = () => {
   const { handleCallback } = useAuth();
 
   useEffect(() => {
-    // Handle OAuth callback
+    // OAuth 콜백 처리
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
@@ -45,7 +45,7 @@ const Callback = () => {
     if (code && state) {
       handleCallback(code, state);
     } else {
-      // Redirect to home if no code
+      // 코드가 없으면 홈으로 리다이렉트
       window.location.href = '/';
     }
   }, [handleCallback]);
@@ -54,7 +54,7 @@ const Callback = () => {
     <CallbackContainer>
       <LoadingCard>
         <Spinner />
-        <p>Completing authentication...</p>
+        <p>인증을 완료하는 중...</p>
       </LoadingCard>
     </CallbackContainer>
   );

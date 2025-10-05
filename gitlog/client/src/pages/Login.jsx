@@ -48,7 +48,7 @@ const GitHubButton = styled.button`
 
 const Login = () => {
   const handleGitHubLogin = () => {
-    // Redirect to GitHub OAuth
+    // GitHub OAuth로 리다이렉트
     window.location.href = '/api/auth/github';
   };
 
@@ -57,10 +57,10 @@ const Login = () => {
       <Header />
       <MainContent>
         <LoginCard>
-          <Title>Login to GitLog</Title>
+          <Title>GitLog 로그인</Title>
           <GitHubButton onClick={handleGitHubLogin}>
             <span>🔗</span>
-            Continue with GitHub
+            GitHub로 계속하기
           </GitHubButton>
         </LoginCard>
       </MainContent>

@@ -37,9 +37,9 @@ const Header = () => {
     <HeaderContainer>
       <Logo>GitLog</Logo>
       <Nav>
-        <NavLink href="/">Home</NavLink>
-        <NavLink href="/dashboard">Dashboard</NavLink>
-        <NavLink href="/login">Login</NavLink>
+        <NavLink href="/">홈</NavLink>
+        <NavLink href="/dashboard">대시보드</NavLink>
+        <NavLink href="/login">로그인</NavLink>
       </Nav>
     </HeaderContainer>
   );

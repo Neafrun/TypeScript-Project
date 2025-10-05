@@ -1,7 +1,7 @@
 {
   "name": "gitlog-server",
   "version": "1.0.0",
-  "description": "GitLog server - GitHub repository analysis API",
+  "description": "GitLog 서버 - GitHub 저장소 분석 API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

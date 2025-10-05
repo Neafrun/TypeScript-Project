@@ -6,7 +6,7 @@ const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost:3000/callback';
 
-// Generate GitHub OAuth URL
+// GitHub OAuth URL 생성
 const getGitHubAuthUrl = (req, res) => {
   const state = Math.random().toString(36).substring(7);
   req.session.state = state;
@@ -16,17 +16,17 @@ const getGitHubAuthUrl = (req, res) => {
   res.redirect(authUrl);
 };
 
-// Handle GitHub OAuth callback
+// GitHub OAuth 콜백 처리
 const handleCallback = async (req, res) => {
   try {
     const { code, state } = req.body;
     
-    // Verify state parameter
+    // state 매개변수 검증
     if (state !== req.session.state) {
-      return res.status(400).json({ error: 'Invalid state parameter' });
+      return res.status(400).json({ error: '잘못된 state 매개변수입니다' });
     }
     
-    // Exchange code for access token
+    // 코드를 액세스 토큰으로 교환
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
       client_id: GITHUB_CLIENT_ID,
       client_secret: GITHUB_CLIENT_SECRET,
@@ -40,10 +40,10 @@ const handleCallback = async (req, res) => {
     const { access_token } = tokenResponse.data;
     
     if (!access_token) {
-      return res.status(400).json({ error: 'Failed to get access token' });
+      return res.status(400).json({ error: '액세스 토큰을 가져오는데 실패했습니다' });
     }
     
-    // Get user information from GitHub
+    // GitHub에서 사용자 정보 가져오기
     const userResponse = await axios.get('https://api.github.com/user', {
       headers: {
         'Authorization': `token ${access_token}`,
@@ -52,7 +52,7 @@ const handleCallback = async (req, res) => {
     
     const user = userResponse.data;
     
-    // Create JWT token
+    // JWT 토큰 생성
     const token = jwt.sign(
       { 
         id: user.id, 
@@ -63,12 +63,12 @@ const handleCallback = async (req, res) => {
       { expiresIn: '7d' }
     );
     
-    // Set cookie
+    // 쿠키 설정
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
     });
     
     res.json({
@@ -81,23 +81,23 @@ const handleCallback = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('OAuth callback error:', error);
-    res.status(500).json({ error: 'Authentication failed' });
+    console.error('OAuth 콜백 오류:', error);
+    res.status(500).json({ error: '인증에 실패했습니다' });
   }
 };
 
-// Get current user
+// 현재 사용자 가져오기
 const getCurrentUser = async (req, res) => {
   try {
     const token = req.cookies.token;
     
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      return res.status(401).json({ error: '토큰이 제공되지 않았습니다' });
     }
     
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Get fresh user data from GitHub
+    // GitHub에서 최신 사용자 데이터 가져오기
     const userResponse = await axios.get('https://api.github.com/user', {
       headers: {
         'Authorization': `token ${decoded.access_token}`,
@@ -116,15 +116,15 @@ const getCurrentUser = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(401).json({ error: 'Invalid token' });
+    console.error('사용자 정보 가져오기 오류:', error);
+    res.status(401).json({ error: '잘못된 토큰입니다' });
   }
 };
 
-// Logout
+// 로그아웃
 const logout = (req, res) => {
   res.clearCookie('token');
-  res.json({ message: 'Logged out successfully' });
+  res.json({ message: '성공적으로 로그아웃되었습니다' });
 };
 
 module.exports = {

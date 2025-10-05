@@ -5,7 +5,7 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth는 AuthProvider 내에서 사용되어야 합니다');
   }
   return context;
 };
@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
+    // 사용자가 이미 로그인되어 있는지 확인
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/me', {
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
           setUser(userData);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('인증 확인 실패:', error);
       } finally {
         setLoading(false);
       }
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       window.location.href = '/';
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('로그아웃 실패:', error);
     }
   };
 
@@ -69,11 +69,11 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         window.location.href = '/dashboard';
       } else {
-        console.error('Authentication failed');
+        console.error('인증 실패');
         window.location.href = '/login';
       }
     } catch (error) {
-      console.error('Callback handling failed:', error);
+      console.error('콜백 처리 실패:', error);
       window.location.href = '/login';
     }
   };

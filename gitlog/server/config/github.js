@@ -19,12 +19,12 @@ class GitHubAPI {
       });
       return response.data;
     } catch (error) {
-      console.error(`GitHub API Error (${endpoint}):`, error.response?.data || error.message);
+      console.error(`GitHub API 오류 (${endpoint}):`, error.response?.data || error.message);
       throw error;
     }
   }
 
-  // Get user repositories
+  // 사용자 저장소 가져오기
   async getUserRepositories(username, options = {}) {
     const params = new URLSearchParams({
       sort: 'updated',
@@ -35,12 +35,12 @@ class GitHubAPI {
     return this.makeRequest(`/users/${username}/repos?${params}`);
   }
 
-  // Get repository details
+  // 저장소 세부 정보 가져오기
   async getRepository(owner, repo) {
     return this.makeRequest(`/repos/${owner}/${repo}`);
   }
 
-  // Get repository commits
+  // 저장소 커밋 가져오기
   async getRepositoryCommits(owner, repo, options = {}) {
     const params = new URLSearchParams({
       per_page: '100',
@@ -50,27 +50,27 @@ class GitHubAPI {
     return this.makeRequest(`/repos/${owner}/${repo}/commits?${params}`);
   }
 
-  // Get repository branches
+  // 저장소 브랜치 가져오기
   async getRepositoryBranches(owner, repo) {
     return this.makeRequest(`/repos/${owner}/${repo}/branches`);
   }
 
-  // Get repository languages
+  // 저장소 언어 가져오기
   async getRepositoryLanguages(owner, repo) {
     return this.makeRequest(`/repos/${owner}/${repo}/languages`);
   }
 
-  // Get repository contributors
+  // 저장소 기여자 가져오기
   async getRepositoryContributors(owner, repo) {
     return this.makeRequest(`/repos/${owner}/${repo}/contributors`);
   }
 
-  // Get commit details
+  // 커밋 세부 정보 가져오기
   async getCommit(owner, repo, sha) {
     return this.makeRequest(`/repos/${owner}/${repo}/commits/${sha}`);
   }
 
-  // Get repository statistics
+  // 저장소 통계 가져오기
   async getRepositoryStats(owner, repo) {
     const [repoData, commits, branches, languages, contributors] = await Promise.all([
       this.getRepository(owner, repo),
