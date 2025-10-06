@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import Header from '../components/Header';
+import { useAuth } from '../context/AuthContext';
 
 const HomeContainer = styled.div`
   min-height: 100vh;
@@ -46,6 +47,7 @@ const CTAButton = styled.button`
 `;
 
 const Home = () => {
+  const { user, login } = useAuth();
   return (
     <HomeContainer>
       <Header />
@@ -55,7 +57,13 @@ const Home = () => {
           <Subtitle>
             강력한 인사이트와 시각화로 GitHub 저장소를 분석하세요
           </Subtitle>
-          <CTAButton>시작하기</CTAButton>
+          {user ? (
+            <a href="/dashboard">
+              <CTAButton>대시보드로 이동</CTAButton>
+            </a>
+          ) : (
+            <CTAButton onClick={login}>GitHub로 시작하기</CTAButton>
+          )}
         </HeroSection>
       </MainContent>
     </HomeContainer>

@@ -114,6 +114,45 @@ npm start
 
 3. 브라우저에서 `http://localhost:3000`으로 이동
 
+### 실행 가이드 (요약)
+
+백엔드만 실행:
+```powershell
+cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\server
+npm install
+npm run dev
+```
+
+프론트만 실행:
+```powershell
+cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\client
+npm install
+npm start
+```
+
+프론트+백엔드 동시에 실행:
+- 터미널 2개로 각각 실행
+  - 터미널 A (백엔드):
+    ```powershell
+    cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\server
+    npm run dev
+    ```
+  - 터미널 B (프론트):
+    ```powershell
+    cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\client
+    npm start
+    ```
+- 또는 한 터미널에서 동시 실행 (concurrently 사용):
+  ```powershell
+  cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog
+  npx concurrently "npm run dev --prefix server" "npm start --prefix client"
+  ```
+
+필수 체크리스트:
+- 서버 `.env`의 `CLIENT_URL`은 `http://localhost:3000`
+- 클라이언트 `.env`의 `REACT_APP_API_URL`은 `http://localhost:5000`
+- GitHub OAuth Redirect URL: `http://localhost:3000/callback`
+
 ## API 엔드포인트
 
 ### 인증

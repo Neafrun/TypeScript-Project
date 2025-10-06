@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import Header from '../components/Header';
+import { useAuth } from '../context/AuthContext';
 
 const LoginContainer = styled.div`
   min-height: 100vh;
@@ -47,10 +48,7 @@ const GitHubButton = styled.button`
 `;
 
 const Login = () => {
-  const handleGitHubLogin = () => {
-    // GitHub OAuth로 리다이렉트
-    window.location.href = '/api/auth/github';
-  };
+  const { login, user } = useAuth();
 
   return (
     <LoginContainer>
@@ -58,9 +56,9 @@ const Login = () => {
       <MainContent>
         <LoginCard>
           <Title>GitLog 로그인</Title>
-          <GitHubButton onClick={handleGitHubLogin}>
+          <GitHubButton onClick={login} disabled={!!user}>
             <span>🔗</span>
-            GitHub로 계속하기
+            {user ? '이미 로그인됨' : 'GitHub로 계속하기'}
           </GitHubButton>
         </LoginCard>
       </MainContent>

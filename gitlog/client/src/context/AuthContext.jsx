@@ -13,12 +13,16 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const API_BASE = (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.trim())
+    || (typeof window !== 'undefined' && window.location && window.location.origin
+      ? window.location.origin.replace(':3000', ':5000')
+      : 'http://localhost:5000');
 
   useEffect(() => {
     // 사용자가 이미 로그인되어 있는지 확인
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me', {
+        const response = await fetch(`${API_BASE}/api/auth/me`, {
           credentials: 'include',
         });
         
@@ -37,12 +41,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = () => {
-    window.location.href = '/api/auth/github';
+    const url = `${API_BASE}/api/auth/github`;
+    window.location.href = url;
   };
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -55,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const handleCallback = async (code, state) => {
     try {
-      const response = await fetch('/api/auth/callback', {
+      const response = await fetch(`${API_BASE}/api/auth/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
