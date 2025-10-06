@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components';
+import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 
 const CallbackContainer = styled.div`
-  min-height: 100vh;
+  min-height: calc(100vh - 200px);
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f6f8fa;
+  padding: 2rem;
 `;
 
 const LoadingCard = styled.div`
@@ -51,12 +53,14 @@ const Callback = () => {
   }, [handleCallback]);
 
   return (
-    <CallbackContainer>
-      <LoadingCard>
-        <Spinner />
-        <p>인증을 완료하는 중...</p>
-      </LoadingCard>
-    </CallbackContainer>
+    <Layout>
+      <CallbackContainer>
+        <LoadingCard>
+          <Spinner />
+          <p>인증을 완료하는 중...</p>
+        </LoadingCard>
+      </CallbackContainer>
+    </Layout>
   );
 };
 

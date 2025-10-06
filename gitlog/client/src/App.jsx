@@ -4,11 +4,11 @@ import styled, { ThemeProvider } from 'styled-components';
 import GlobalStyle from './styles/GlobalStyle';
 import theme from './styles/theme';
 import { AuthProvider } from './context/AuthContext';
+import Layout from './components/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Callback from './pages/Callback';
 import Dashboard from './pages/Dashboard';
-import ProtectedRoute from './components/ProtectedRoute';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -25,11 +25,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/callback" element={<Callback />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
+              <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
           </AppContainer>
         </Router>

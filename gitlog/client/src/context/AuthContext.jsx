@@ -11,7 +11,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('gitlog_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch (_) {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const API_BASE = (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.trim())
     || (typeof window !== 'undefined' && window.location && window.location.origin
@@ -29,6 +36,9 @@ export const AuthProvider = ({ children }) => {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+          try { localStorage.setItem('gitlog_user', JSON.stringify(userData)); } catch (_) {}
+        } else {
+          try { localStorage.removeItem('gitlog_user'); } catch (_) {}
         }
       } catch (error) {
         console.error('인증 확인 실패:', error);
@@ -52,6 +62,7 @@ export const AuthProvider = ({ children }) => {
         credentials: 'include',
       });
       setUser(null);
+      try { localStorage.removeItem('gitlog_user'); } catch (_) {}
       window.location.href = '/';
     } catch (error) {
       console.error('로그아웃 실패:', error);
@@ -72,6 +83,8 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        try { localStorage.setItem('gitlog_user', JSON.stringify(userData)); } catch (_) {}
+        try { window.alert('로그인 완료!'); } catch (e) {}
         window.location.href = '/dashboard';
       } else {
         console.error('인증 실패');

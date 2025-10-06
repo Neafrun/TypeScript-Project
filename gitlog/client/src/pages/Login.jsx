@@ -1,17 +1,19 @@
 import React from 'react';
 import styled from 'styled-components';
-import Header from '../components/Header';
-import { useAuth } from '../context/AuthContext';
+import Layout from '../components/Layout';
 
 const LoginContainer = styled.div`
-  min-height: 100vh;
   background-color: #f6f8fa;
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
 `;
 
-const MainContent = styled.main`
+const MainContent = styled.div`
   max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
+  width: 100%;
 `;
 
 const LoginCard = styled.div`
@@ -48,21 +50,25 @@ const GitHubButton = styled.button`
 `;
 
 const Login = () => {
-  const { login, user } = useAuth();
+  const handleGitHubLogin = () => {
+    // GitHub OAuth로 리다이렉트
+    window.location.href = '/api/auth/github';
+  };
 
   return (
-    <LoginContainer>
-      <Header />
-      <MainContent>
-        <LoginCard>
-          <Title>GitLog 로그인</Title>
-          <GitHubButton onClick={login} disabled={!!user}>
-            <span>🔗</span>
-            {user ? '이미 로그인됨' : 'GitHub로 계속하기'}
-          </GitHubButton>
-        </LoginCard>
-      </MainContent>
-    </LoginContainer>
+    <Layout>
+      <LoginContainer>
+        <MainContent>
+          <LoginCard>
+            <Title>GitLog 로그인</Title>
+            <GitHubButton onClick={handleGitHubLogin}>
+              <span>🔗</span>
+              GitHub로 계속하기
+            </GitHubButton>
+          </LoginCard>
+        </MainContent>
+      </LoginContainer>
+    </Layout>
   );
 };
 

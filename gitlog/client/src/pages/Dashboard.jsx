@@ -1,17 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import Header from '../components/Header';
+import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { apiGet } from '../api/client';
 
 const DashboardContainer = styled.div`
-  min-height: 100vh;
   background-color: #f6f8fa;
+  min-height: calc(100vh - 200px);
+  padding: 2rem;
 `;
 
-const MainContent = styled.main`
+const MainContent = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
 `;
 
 const WelcomeSection = styled.section`
@@ -89,48 +90,71 @@ const RepoDescription = styled.p`
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [repos, setRepos] = useState([]);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadRepos = async () => {
+      if (!user) return;
+      try {
+        setLoadingRepos(true);
+        const data = await apiGet('/api/github/repos');
+        setRepos(data);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoadingRepos(false);
+      }
+    };
+    loadRepos();
+  }, [user]);
 
   if (!user) {
     return (
-      <DashboardContainer>
-        <Header />
-        <MainContent>
-          <p>대시보드에 접근하려면 로그인해주세요.</p>
-        </MainContent>
-      </DashboardContainer>
+      <Layout>
+        <DashboardContainer>
+          <MainContent>
+            <p>대시보드에 접근하려면 로그인해주세요.</p>
+          </MainContent>
+        </DashboardContainer>
+      </Layout>
     );
   }
 
   return (
-    <DashboardContainer>
-      <Header />
-      <MainContent>
-        <WelcomeSection>
-          <Title>대시보드</Title>
-          <UserInfo>
-            <Avatar src={user.avatar_url} alt={user.login} />
-            <UserDetails>
-              <h3>{user.name || user.login}</h3>
-              <p>@{user.login}</p>
-            </UserDetails>
-          </UserInfo>
-        </WelcomeSection>
+    <Layout>
+      <DashboardContainer>
+        <MainContent>
+          <WelcomeSection>
+            <Title>대시보드</Title>
+            <UserInfo>
+              <Avatar src={user.avatar_url} alt={user.login} />
+              <UserDetails>
+                <h3>{user.name || user.login}</h3>
+                <p>@{user.login}</p>
+              </UserDetails>
+            </UserInfo>
+          </WelcomeSection>
 
-        <RepositoriesSection>
-          <h2>저장소 목록</h2>
-          <RepoList>
-            <RepoItem>
-              <RepoName>샘플-저장소</RepoName>
-              <RepoDescription>데모용 샘플 저장소입니다</RepoDescription>
-            </RepoItem>
-            <RepoItem>
-              <RepoName>다른-저장소</RepoName>
-              <RepoDescription>또 다른 샘플 저장소입니다</RepoDescription>
-            </RepoItem>
-          </RepoList>
-        </RepositoriesSection>
-      </MainContent>
-    </DashboardContainer>
+          <RepositoriesSection>
+            <h2>저장소 목록</h2>
+            {loadingRepos && <p>불러오는 중...</p>}
+            {error && <p style={{ color: '#d73a49' }}>오류: {error}</p>}
+            {!loadingRepos && !error && (
+              <RepoList>
+                {repos.map((r) => (
+                  <RepoItem key={r.id}>
+                    <RepoName>{r.full_name || r.name}</RepoName>
+                    <RepoDescription>{r.description || '설명이 없습니다'}</RepoDescription>
+                  </RepoItem>
+                ))}
+              </RepoList>
+            )}
+          </RepositoriesSection>
+        </MainContent>
+      </DashboardContainer>
+    </Layout>
   );
 };
 

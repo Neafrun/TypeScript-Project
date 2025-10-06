@@ -63,11 +63,12 @@ const handleCallback = async (req, res) => {
       { expiresIn: '7d' }
     );
     
-    // 쿠키 설정
+    // 쿠키 설정 (개발환경에서는 localhost 전역에 설정하여 3000/5000 모두 접근 가능하도록)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
     });
     
