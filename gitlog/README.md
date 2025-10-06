@@ -125,6 +125,17 @@ npm start
 ### 헬스 체크
 - `GET /api/health` - 서버 상태 확인
 
+### GitHub 데이터
+- `GET /api/github/repos` - 로그인 사용자의 저장소 목록 (쿠키 필요)
+- `GET /api/github/repos/:owner/:repo/stats` - 저장소 통계 (쿠키 필요)
+- `GET /api/github/repos/:owner/:repo/commits` - 저장소 커밋 (쿠키 필요)
+
+### 디버그
+- `GET /api/debug/ping` - 단순 핑 확인
+- `GET /api/debug/headers` - 요청 헤더 확인
+- `GET /api/debug/session` - 세션 확인
+- `GET /api/debug/jwt` - JWT 디코딩 결과 확인 (쿠키 필요)
+
 ## 사용된 기술
 
 ### 프론트엔드
@@ -153,6 +164,37 @@ npm start
 **서버:**
 - `npm start` - 프로덕션 서버 시작
 - `npm run dev` - nodemon으로 개발 서버 시작
+
+### 문제 원인 빠르게 파악하기 (프론트/백엔드 구분)
+
+1) 백엔드 헬스 확인: `GET /api/health` 응답 200이면 서버 OK
+
+2) 세션/쿠키 확인:
+- `GET /api/debug/session`로 세션 OK 확인
+- 로그인 후 `GET /api/debug/jwt`로 JWT 파싱 결과 확인 (쿠키 포함 요청 필요)
+
+3) GitHub API 경로 독립 테스트:
+- Postman으로 `GET /api/github/repos` 호출 → 200이면 백엔드/토큰 OK, 프론트 이슈 가능
+- 401/403이면 인증/토큰 이슈 (백엔드/설정 문제)
+
+4) 요청 추적: 모든 응답 헤더의 `X-Request-Id`를 확인해 서버 로그와 매칭
+
+### Postman 사용법
+
+1. Postman 설치 후, 아래 파일 임포트:
+- `server/GitLog.postman_collection.json`
+- `server/GitLog.postman_environment.json`
+
+2. 환경 선택: 상단 우측에서 `GitLog Local` 선택
+
+3. 순서:
+- `Auth - GitHub Start`로 state 발급 → 브라우저 OAuth 진행 후 code/state 확보
+- `Auth - Callback`에 code/state 입력하고 실행 → `token` 쿠키 설정됨
+- `Auth - Me` 또는 `GitHub` 폴더의 요청들 실행 (쿠키 필요)
+
+4. 쿠키 전송: Postman에서 Cookie 탭으로 `localhost` 도메인 쿠키 `token` 확인
+
+5. 에러시: 응답의 `X-Request-Id`를 서버 로그와 매칭해 원인 추적
 
 ## 기여하기
 

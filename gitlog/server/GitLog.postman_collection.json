@@ -1,0 +1,187 @@
+{
+  "info": {
+    "name": "GitLog Backend APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "Auth - GitHub Start",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/github",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "github"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Callback",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{code}}\",\n  \"state\": \"{{state}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/callback",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "callback"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Me",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "me"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "logout"]
+        }
+      }
+    },
+    {
+      "name": "Debug - Ping",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/debug/ping",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "debug", "ping"]
+        }
+      }
+    },
+    {
+      "name": "Debug - Headers",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/debug/headers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "debug", "headers"]
+        }
+      }
+    },
+    {
+      "name": "Debug - Session",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/debug/session",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "debug", "session"]
+        }
+      }
+    },
+    {
+      "name": "Debug - JWT",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/debug/jwt",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "debug", "jwt"]
+        }
+      }
+    },
+    {
+      "name": "GitHub - Repos",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/github/repos",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "github", "repos"]
+        }
+      }
+    },
+    {
+      "name": "GitHub - Repo Stats",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/github/repos/:owner/:repo/stats",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "github", "repos", ":owner", ":repo", "stats"]
+        }
+      }
+    },
+    {
+      "name": "GitHub - Repo Commits",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Request-Id", "value": "{{requestId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/github/repos/:owner/:repo/commits",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "github", "repos", ":owner", ":repo", "commits"],
+          "query": [
+            { "key": "per_page", "value": "30" },
+            { "key": "page", "value": "1" }
+          ]
+        }
+      }
+    }
+  ]
+}
+
+

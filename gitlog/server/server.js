@@ -2,9 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
+const { requestId, requestLogger } = require('./middleware/logger');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const githubRoutes = require('./routes/github');
+const debugRoutes = require('./routes/debug');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -19,6 +22,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(requestId);
+app.use(requestLogger);
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret',
@@ -33,6 +38,17 @@ app.use(session({
 
 // 라우트
 app.use('/api/auth', authRoutes);
+app.use('/api/github', githubRoutes);
+app.use('/api/debug', debugRoutes);
+
+// 루트 페이지 안내
+app.get('/', (req, res) => {
+  res.json({
+    message: 'GitLog API 서버입니다. 상태 확인은 /api/health 를 사용하세요.',
+    health: '/api/health',
+    docs: 'README.md 를 참고하세요'
+  });
+});
 
 // 헬스 체크 엔드포인트
 app.get('/api/health', (req, res) => {
