@@ -31,5 +31,26 @@ export async function apiGet(path, options = {}) {
   return res.json();
 }
 
+export async function apiPost(path, data, options = {}) {
+  // JWT 토큰 가져오기
+  const token = localStorage.getItem('token');
+  
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(options.headers || {}),
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`POST ${path} failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
 
 

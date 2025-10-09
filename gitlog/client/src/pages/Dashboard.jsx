@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../api/client';
@@ -66,33 +67,232 @@ const RepoList = styled.div`
 `;
 
 const RepoItem = styled.div`
-  padding: 1rem;
+  background: white;
+  padding: 1.5rem;
   border: 1px solid #e1e4e8;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 
   &:hover {
-    border-color: #0366d6;
+    border-color: #ff8c42;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff8c42, #ff6b35);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  &:hover::before {
+    transform: scaleX(1);
   }
 `;
 
 const RepoName = styled.h4`
   margin: 0 0 0.5rem;
   color: #0366d6;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
+  
+  ${RepoItem}:hover & {
+    color: #ff8c42;
+  }
 `;
 
 const RepoDescription = styled.p`
-  margin: 0;
+  margin: 0 0 1rem;
   color: #586069;
+  font-size: 0.95rem;
+  line-height: 1.4;
+`;
+
+const RepoStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #6a737d;
+`;
+
+const StatItem = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const AnalyzeButton = styled.button`
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 140, 66, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const FilterSection = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+`;
+
+const FilterLabel = styled.span`
+  font-weight: 600;
+  color: #24292e;
+  margin-right: 1rem;
+`;
+
+const FilterButton = styled.button`
+  background: ${props => props.active ? 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)' : 'white'};
+  color: ${props => props.active ? 'white' : '#24292e'};
+  border: 2px solid ${props => props.active ? 'transparent' : '#e1e4e8'};
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s ease;
+  opacity: ${props => props.disabled ? 0.6 : 1};
+
+  &:hover {
+    border-color: ${props => props.disabled ? '#e1e4e8' : '#ff8c42'};
+    background: ${props => props.active ? 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)' : props.disabled ? 'white' : '#fff8f4'};
+  }
+
+  &:active {
+    transform: ${props => props.disabled ? 'none' : 'translateY(1px)'};
+  }
+`;
+
+const RepoCount = styled.span`
+  font-size: 0.9rem;
+  color: #586069;
+  margin-left: auto;
+`;
+
+const SortSection = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+`;
+
+const SortLabel = styled.span`
+  font-weight: 600;
+  color: #24292e;
+  margin-right: 1rem;
+`;
+
+const SortButton = styled.button`
+  background: ${props => props.active ? 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)' : 'white'};
+  color: ${props => props.active ? 'white' : '#24292e'};
+  border: 2px solid ${props => props.active ? 'transparent' : '#e1e4e8'};
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s ease;
+  opacity: ${props => props.disabled ? 0.6 : 1};
+
+  &:hover {
+    border-color: ${props => props.disabled ? '#e1e4e8' : '#ff8c42'};
+    background: ${props => props.active ? 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)' : props.disabled ? 'white' : '#fff8f4'};
+  }
+
+  &:active {
+    transform: ${props => props.disabled ? 'none' : 'translateY(1px)'};
+  }
 `;
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [repos, setRepos] = useState([]);
+  const [filteredRepos, setFilteredRepos] = useState([]);
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [error, setError] = useState(null);
+  const [visibilityFilter, setVisibilityFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleAnalyzeRepo = (repo) => {
+    // Repository Analysis 페이지로 이동하면서 레포지토리 URL을 전달
+    navigate(`/repository-analysis?repo=${encodeURIComponent(repo.full_name)}`);
+  };
+
+  // 필터링 로직
+  const filterRepos = (repos, filter) => {
+    if (filter === 'all') return repos;
+    return repos.filter(repo => repo.private === (filter === 'private'));
+  };
+
+  // 정렬 로직
+  const sortRepos = (repos, sortOrder) => {
+    const sortedRepos = [...repos];
+    sortedRepos.sort((a, b) => {
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+      
+      if (sortOrder === 'newest') {
+        return dateB - dateA; // 내림차순 (최신순)
+      } else {
+        return dateA - dateB; // 오름차순 (오래된 순)
+      }
+    });
+    return sortedRepos;
+  };
+
+  // 필터 변경 핸들러
+  const handleFilterChange = async (filter) => {
+    setIsProcessing(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100)); // 작은 지연으로 안정성 개선
+      setVisibilityFilter(filter);
+      const filtered = filterRepos(repos, filter);
+      setFilteredRepos(sortRepos(filtered, sortOrder));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 정렬 변경 핸들러
+  const handleSortChange = async (order) => {
+    setIsProcessing(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100)); // 작은 지연으로 안정성 개선
+      setSortOrder(order);
+      setFilteredRepos(sortRepos(filteredRepos, order));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   useEffect(() => {
     const loadRepos = async () => {
@@ -100,7 +300,10 @@ const Dashboard = () => {
       try {
         setLoadingRepos(true);
         const response = await apiGet('/api/github/repos');
-        setRepos(response.repos || []);
+        const reposData = response.repos || [];
+        setRepos(reposData);
+        const filtered = filterRepos(reposData, visibilityFilter);
+        setFilteredRepos(sortRepos(filtered, sortOrder));
       } catch (e) {
         setError(e.message);
       } finally {
@@ -108,14 +311,14 @@ const Dashboard = () => {
       }
     };
     loadRepos();
-  }, [user]);
+  }, [user, visibilityFilter, sortOrder]);
 
   if (!user) {
     return (
       <Layout>
         <DashboardContainer>
           <MainContent>
-            <p>대시보드에 접근하려면 로그인해주세요.</p>
+            <p>Please login to access the dashboard.</p>
           </MainContent>
         </DashboardContainer>
       </Layout>
@@ -127,7 +330,7 @@ const Dashboard = () => {
       <DashboardContainer>
         <MainContent>
           <WelcomeSection>
-            <Title>대시보드</Title>
+            <Title>Dashboard</Title>
             <UserInfo>
               <Avatar src={user.avatar_url} alt={user.login} />
               <UserDetails>
@@ -138,18 +341,88 @@ const Dashboard = () => {
           </WelcomeSection>
 
           <RepositoriesSection>
-            <h2>저장소 목록</h2>
-            {loadingRepos && <p>불러오는 중...</p>}
-            {error && <p style={{ color: '#d73a49' }}>오류: {error}</p>}
+            <h2>Repository List</h2>
+            {loadingRepos && <p>Loading...</p>}
+            {error && <p style={{ color: '#d73a49' }}>Error: {error}</p>}
             {!loadingRepos && !error && (
-              <RepoList>
-                {repos.map((r) => (
-                  <RepoItem key={r.id}>
+              <>
+                <FilterSection>
+                  <FilterLabel>Filter by visibility:</FilterLabel>
+                  <FilterButton 
+                    active={visibilityFilter === 'all'} 
+                    disabled={isProcessing}
+                    onClick={() => handleFilterChange('all')}
+                  >
+                    All
+                  </FilterButton>
+                  <FilterButton 
+                    active={visibilityFilter === 'public'} 
+                    disabled={isProcessing}
+                    onClick={() => handleFilterChange('public')}
+                  >
+                    Public
+                  </FilterButton>
+                  <FilterButton 
+                    active={visibilityFilter === 'private'} 
+                    disabled={isProcessing}
+                    onClick={() => handleFilterChange('private')}
+                  >
+                    Private
+                  </FilterButton>
+                  <RepoCount>
+                    Showing {filteredRepos.length} of {repos.length} repositories
+                  </RepoCount>
+                </FilterSection>
+                
+                <SortSection>
+                  <SortLabel>Sort by creation date:</SortLabel>
+                  <SortButton 
+                    active={sortOrder === 'newest'} 
+                    disabled={isProcessing}
+                    onClick={() => handleSortChange('newest')}
+                  >
+                    Newest First
+                  </SortButton>
+                  <SortButton 
+                    active={sortOrder === 'oldest'} 
+                    disabled={isProcessing}
+                    onClick={() => handleSortChange('oldest')}
+                  >
+                    Oldest First
+                  </SortButton>
+                </SortSection>
+                <RepoList>
+                  {filteredRepos.map((r) => (
+                  <RepoItem key={r.id} onClick={() => handleAnalyzeRepo(r)}>
                     <RepoName>{r.full_name || r.name}</RepoName>
-                    <RepoDescription>{r.description || '설명이 없습니다'}</RepoDescription>
+                    <RepoDescription>{r.description || 'No description available'}</RepoDescription>
+                    <RepoStats>
+                      <StatItem>
+                        {r.private ? '🔒 Private' : '🌐 Public'}
+                      </StatItem>
+                      <StatItem>
+                        Stars: {r.stargazers_count || 0}
+                      </StatItem>
+                      <StatItem>
+                        Forks: {r.forks_count || 0}
+                      </StatItem>
+                      <StatItem>
+                        Language: {r.language || 'Unknown'}
+                      </StatItem>
+                      <StatItem>
+                        Created: {new Date(r.created_at).toLocaleDateString()}
+                      </StatItem>
+                    </RepoStats>
+                    <AnalyzeButton onClick={(e) => {
+                      e.stopPropagation();
+                      handleAnalyzeRepo(r);
+                    }}>
+                      Analyze
+                    </AnalyzeButton>
                   </RepoItem>
                 ))}
-              </RepoList>
+                </RepoList>
+              </>
             )}
           </RepositoriesSection>
         </MainContent>

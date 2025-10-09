@@ -41,11 +41,11 @@ const Spinner = styled.div`
 
 const Callback = () => {
   const { handleCallback, setUser, setToken } = useAuth();
-  const [status, setStatus] = useState('인증을 완료하는 중...');
+  const [status, setStatus] = useState('Completing authentication...');
   useEffect(() => {
     const processCallback = async () => {
       try {
-        setStatus('GitHub에서 인증 정보를 가져오는 중...');
+        setStatus('Fetching authentication information from GitHub...');
         
         // URL에서 token과 user 파라미터 추출 (백엔드에서 리다이렉트된 경우)
         const urlParams = new URLSearchParams(window.location.search);
@@ -59,7 +59,7 @@ const Callback = () => {
         // GitHub에서 오류가 발생한 경우
         if (error) {
           console.error('❌ GitHub OAuth 오류:', error, errorDescription);
-          setStatus(`GitHub 인증 오류: ${error} - ${errorDescription || '알 수 없는 오류'}`);
+          setStatus(`GitHub authentication error: ${error} - ${errorDescription || 'Unknown error'}`);
           setTimeout(() => {
             window.location.href = '/';
           }, 5000);
@@ -68,7 +68,7 @@ const Callback = () => {
 
         // 백엔드에서 리다이렉트된 경우 (토큰이 있는 경우)
         if (token && user) {
-          setStatus('로그인을 완료하는 중...');
+          setStatus('Completing login...');
           
           try {
             const userData = JSON.parse(decodeURIComponent(user));
@@ -81,7 +81,7 @@ const Callback = () => {
             setToken(token);
             setUser(userData);
             
-            setStatus('로그인 완료! 홈페이지로 이동합니다...');
+            setStatus('Login completed! Redirecting to homepage...');
             
             setTimeout(() => {
               window.location.href = '/';
@@ -89,20 +89,20 @@ const Callback = () => {
             
           } catch (parseError) {
             console.error('❌ 사용자 데이터 파싱 오류:', parseError);
-            setStatus('로그인 처리 중 오류가 발생했습니다.');
+            setStatus('An error occurred during login processing.');
             setTimeout(() => {
               window.location.href = '/';
             }, 3000);
           }
         } else if (code) {
-          setStatus('인증 코드를 찾을 수 없습니다. 홈으로 이동합니다...');
+          setStatus('Authentication code not found. Redirecting to home...');
           setTimeout(() => {
             window.location.href = '/';
           }, 3000);
         }
       } catch (error) {
         console.error('❌ 콜백 처리 오류:', error);
-        setStatus(`인증 실패: ${error.message || '알 수 없는 오류'}`);
+        setStatus(`Authentication failed: ${error.message || 'Unknown error'}`);
         setTimeout(() => {
           window.location.href = '/';
         }, 5000);

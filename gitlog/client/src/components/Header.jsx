@@ -214,7 +214,8 @@ const Header = () => {
             <a href="/"><Logo>GitLog</Logo></a>
           </LogoSection>
           <Nav>
-            <NavLink href="/dashboard">Dashboard</NavLink>
+            {user && <NavLink href="/dashboard">Dashboard</NavLink>}
+            <NavLink href="/repository-analysis">Repository Analysis</NavLink>
             {user && <NavLink href="/ai-analysis">AI Analysis</NavLink>}
             {loading ? (
               <StartButton href="#" style={{ opacity: 0.7, cursor: 'not-allowed' }}>
@@ -240,6 +241,9 @@ const Header = () => {
                     </DropdownHeader>
                     <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
                       Dashboard
+                    </DropdownItem>
+                    <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/repository-analysis'); }}>
+                      Repository Analysis
                     </DropdownItem>
                     <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/ai-analysis'); }}>
                       AI Analysis

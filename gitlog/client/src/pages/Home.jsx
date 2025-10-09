@@ -63,6 +63,15 @@ const Subtitle = styled.p`
   color: white;
 `;
 
+const LoginPrompt = styled.p`
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  line-height: 1.4;
+  opacity: 0.8;
+  color: white;
+  font-style: italic;
+`;
+
 const StartButton = styled.button`
   background-color: #4caf50;
   color: white;
@@ -131,6 +140,11 @@ const Home = () => {
             <Subtitle>
               Effortlessly track changes, collaborate with your team, and celebrate every milestone.
             </Subtitle>
+            {!user && (
+              <LoginPrompt>
+                Login to access enhanced repository analysis features and AI-powered insights
+              </LoginPrompt>
+            )}
             <StartButton onClick={handleStartClick}>
               {user ? 'Go to Dashboard' : 'Get Started'} <ArrowIcon>→</ArrowIcon>
             </StartButton>

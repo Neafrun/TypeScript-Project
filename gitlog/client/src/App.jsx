@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Callback from './pages/Callback';
 import Dashboard from './pages/Dashboard';
 import AIAnalysis from './pages/AIAnalysis';
+import RepositoryAnalysis from './pages/RepositoryAnalysis';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Contact from './pages/Contact';
@@ -53,6 +54,7 @@ const AppContent = () => {
           <Route path="/callback" element={<Callback />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-analysis" element={<AIAnalysis />} />
+          <Route path="/repository-analysis" element={<RepositoryAnalysis />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/contact" element={<Contact />} />

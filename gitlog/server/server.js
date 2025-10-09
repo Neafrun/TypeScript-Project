@@ -17,6 +17,7 @@ console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '설정됨' : '❌ �
 
 const authRoutes = require('./routes/auth');
 const githubRoutes = require('./routes/github');
+const repositoryRoutes = require('./routes/repository');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,6 +47,7 @@ app.use(session({
 // 라우트 설정
 app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/repository', repositoryRoutes);
 
 // 헬스 체크 엔드포인트
 app.get('/api/health', (req, res) => {
@@ -89,4 +91,8 @@ app.listen(PORT, () => {
       console.log(`   - POST /api/auth/logout - 로그아웃`);
       console.log(`   - GET  /api/github/repos - GitHub 저장소 목록`);
       console.log(`   - GET  /api/github/repos/:owner/:repo/commits - 저장소 커밋 히스토리`);
+      console.log(`   - GET  /api/repository/info/:owner/:repo - 레포지토리 정보`);
+      console.log(`   - GET  /api/repository/commits/:owner/:repo - 커밋 통계`);
+      console.log(`   - GET  /api/repository/all-commits/:owner/:repo - 모든 브랜치 커밋`);
+      console.log(`   - POST /api/repository/analyze - 레포지토리 분석`);
 });
