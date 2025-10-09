@@ -99,6 +99,7 @@ const Header = () => {
           </LogoSection>
           <Nav>
             <NavLink href="/">홈</NavLink>
+            <NavLink href="/analyze">레포지토리 분석</NavLink>
             <NavLink href="/dashboard">대시보드</NavLink>
             {user ? (
               <>

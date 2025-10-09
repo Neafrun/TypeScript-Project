@@ -2,12 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const { requestId, requestLogger } = require('./middleware/logger');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const githubRoutes = require('./routes/github');
 const debugRoutes = require('./routes/debug');
+const repositoryRoutes = require('./routes/repository');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -26,20 +28,29 @@ app.use(requestId);
 app.use(requestLogger);
 
 app.use(session({
+  store: new FileStore({
+    path: './sessions',
+    ttl: 24 * 60 * 60, // 24시간
+    retries: 5,
+    logFn: function() {} // 로그 비활성화
+  }),
   secret: process.env.SESSION_SECRET || 'your-session-secret',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000, // 24시간
   },
+  name: 'gitlog.session',
 }));
 
 // 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/debug', debugRoutes);
+app.use('/api/repository', repositoryRoutes);
 
 // 루트 페이지 안내
 app.get('/', (req, res) => {

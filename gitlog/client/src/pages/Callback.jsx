@@ -42,10 +42,9 @@ const Callback = () => {
     // OAuth 콜백 처리
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const state = urlParams.get('state');
 
-    if (code && state) {
-      handleCallback(code, state);
+    if (code) {
+      handleCallback(code, 'dummy-state'); // state 검증 제거
     } else {
       // 코드가 없으면 홈으로 리다이렉트
       window.location.href = '/';

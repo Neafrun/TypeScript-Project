@@ -37,7 +37,11 @@ export const AuthProvider = ({ children }) => {
           const userData = await response.json();
           setUser(userData);
           try { localStorage.setItem('gitlog_user', JSON.stringify(userData)); } catch (_) {}
+        } else if (response.status === 401) {
+          // 인증되지 않은 상태는 정상적인 상황이므로 로그를 출력하지 않음
+          try { localStorage.removeItem('gitlog_user'); } catch (_) {}
         } else {
+          console.error('인증 확인 실패:', response.status);
           try { localStorage.removeItem('gitlog_user'); } catch (_) {}
         }
       } catch (error) {
@@ -61,11 +65,30 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         credentials: 'include',
       });
+      
+      // 로컬 상태 완전 초기화
       setUser(null);
-      try { localStorage.removeItem('gitlog_user'); } catch (_) {}
+      setLoading(false);
+      
+      // 로컬 스토리지 정리
+      try { 
+        localStorage.removeItem('gitlog_user');
+        localStorage.clear();
+      } catch (_) {}
+      
+      // 세션 스토리지 정리
+      try { 
+        sessionStorage.clear();
+      } catch (_) {}
+      
+      // 홈페이지로 리다이렉트
       window.location.href = '/';
     } catch (error) {
       console.error('로그아웃 실패:', error);
+      // 오류가 발생해도 로컬 상태는 초기화
+      setUser(null);
+      try { localStorage.removeItem('gitlog_user'); } catch (_) {}
+      window.location.href = '/';
     }
   };
 

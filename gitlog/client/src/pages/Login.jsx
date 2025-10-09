@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
+import { useAuth } from '../context/AuthContext';
 
 const LoginContainer = styled.div`
   background-color: #f6f8fa;
@@ -50,9 +51,11 @@ const GitHubButton = styled.button`
 `;
 
 const Login = () => {
+  const { login } = useAuth();
+  
   const handleGitHubLogin = () => {
-    // GitHub OAuth로 리다이렉트
-    window.location.href = '/api/auth/github';
+    // AuthContext의 login 함수 사용
+    login();
   };
 
   return (

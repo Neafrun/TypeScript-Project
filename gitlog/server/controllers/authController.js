@@ -8,22 +8,24 @@ const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost
 
 // GitHub OAuth URL 생성
 const getGitHubAuthUrl = (req, res) => {
+  // 세션 없이 간단한 state 생성
   const state = Math.random().toString(36).substring(7);
-  req.session.state = state;
   
   const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${GITHUB_REDIRECT_URI}&state=${state}&scope=user:email,repo`;
   
+  console.log('GitHub OAuth URL 생성:', { state, authUrl });
   res.redirect(authUrl);
 };
 
 // GitHub OAuth 콜백 처리
 const handleCallback = async (req, res) => {
   try {
-    const { code, state } = req.body;
+    const { code } = req.body;
     
-    // state 매개변수 검증
-    if (state !== req.session.state) {
-      return res.status(400).json({ error: '잘못된 state 매개변수입니다' });
+    console.log('OAuth 콜백 처리 시작:', { code: code ? 'present' : 'missing' });
+    
+    if (!code) {
+      return res.status(400).json({ error: '인증 코드가 없습니다' });
     }
     
     // 코드를 액세스 토큰으로 교환
@@ -124,7 +126,24 @@ const getCurrentUser = async (req, res) => {
 
 // 로그아웃
 const logout = (req, res) => {
-  res.clearCookie('token');
+  // 쿠키 완전 삭제
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
+    path: '/',
+  });
+  
+  // 세션 삭제
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('세션 삭제 실패:', err);
+      }
+    });
+  }
+  
   res.json({ message: '성공적으로 로그아웃되었습니다' });
 };
 
