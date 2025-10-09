@@ -10,6 +10,10 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Callback from './pages/Callback';
 import Dashboard from './pages/Dashboard';
+import AIAnalysis from './pages/AIAnalysis';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import Contact from './pages/Contact';
 
 // API 경로 리다이렉트 컴포넌트
 const APIRedirect = () => {
@@ -48,6 +52,10 @@ const AppContent = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/callback" element={<Callback />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/ai-analysis" element={<AIAnalysis />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/contact" element={<Contact />} />
           {/* API 경로는 백엔드로 리다이렉트 */}
           <Route path="/api/*" element={<APIRedirect />} />
         </Routes>

@@ -5,6 +5,10 @@ const FooterContainer = styled.footer`
   background-color: #f5f5f5;
   padding: 2rem 0;
   margin-top: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 `;
 
 const FooterContent = styled.div`
@@ -52,6 +56,10 @@ const FooterLink = styled.a`
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 
   &:hover {
     color: #333;
@@ -76,9 +84,9 @@ const Footer = () => {
           <Copyright>© 2024 GitLog. All rights reserved.</Copyright>
         </FooterLeft>
         <FooterRight>
-          <FooterLink href="#privacy">개인정보처리방침</FooterLink>
-          <FooterLink href="#terms">이용약관</FooterLink>
-          <FooterLink href="#contact">문의하기</FooterLink>
+          <FooterLink href="/privacy">개인정보처리방침</FooterLink>
+          <FooterLink href="/terms">이용약관</FooterLink>
+          <FooterLink href="/contact">문의하기</FooterLink>
         </FooterRight>
       </FooterContent>
     </FooterContainer>

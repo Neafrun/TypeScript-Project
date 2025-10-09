@@ -26,7 +26,7 @@ const LoginContainer = styled.div`
 `;
 
 const MainContent = styled.div`
-  max-width: 450px;
+  max-width: 400px;
   width: 100%;
   position: relative;
   z-index: 1;
@@ -35,11 +35,17 @@ const MainContent = styled.div`
 const LoginCard = styled.div`
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 3rem;
+  border-radius: 16px;
+  padding: 2.5rem;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   text-align: center;
+  max-width: 400px;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 `;
 
 const LogoSection = styled.div`
@@ -57,15 +63,16 @@ const LogoImage = styled.img`
 const Title = styled.h1`
   color: #24292e;
   margin-bottom: 0.5rem;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
 `;
 
 const Subtitle = styled.p`
   color: #666;
-  margin-bottom: 2.5rem;
-  font-size: 1.1rem;
-  line-height: 1.5;
+  margin-bottom: 2rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: nowrap;
 `;
 
 const GitHubButton = styled.button`
@@ -86,6 +93,10 @@ const GitHubButton = styled.button`
   box-shadow: 0 8px 20px rgba(36, 41, 46, 0.3);
   position: relative;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 
   &:hover {
     transform: translateY(-2px);
@@ -119,30 +130,20 @@ const GitHubButton = styled.button`
 `;
 
 const GitHubIcon = styled.div`
-  font-size: 1.5rem;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: invert(1);
+  }
 `;
 
-const FeaturesList = styled.div`
-  margin-top: 2rem;
-  text-align: left;
-`;
-
-const FeatureItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin-bottom: 1rem;
-  color: #666;
-  font-size: 0.95rem;
-`;
-
-const FeatureIcon = styled.span`
-  color: #ff6b35;
-  font-size: 1.2rem;
-`;
 
 const Login = () => {
   const { login } = useAuth();
@@ -152,6 +153,9 @@ const Login = () => {
     if (isLoading) return;
     
     setIsLoading(true);
+    // 로딩 상태를 2초 후에 해제 (중복 클릭 방지)
+    setTimeout(() => setIsLoading(false), 2000);
+    
     try {
       // 직접 백엔드 서버로 리다이렉트 (프록시 우회)
       window.location.href = 'http://localhost:5000/api/auth/github';
@@ -168,37 +172,22 @@ const Login = () => {
           <LoginCard>
             <LogoSection>
               <LogoImage src="/gitlog.png" alt="GitLog Logo" />
-              <Title>GitLog에 오신 것을 환영합니다!</Title>
+              <Title>Welcome to GitLog!</Title>
               <Subtitle>
-                GitHub 계정으로 로그인하여 프로젝트의 스토리를 아름답게 기록해보세요
+                Check and improve your projects
               </Subtitle>
             </LogoSection>
             
             <GitHubButton onClick={handleGitHubLogin} disabled={isLoading}>
               <GitHubIcon>
-                {isLoading ? '⏳' : '🐙'}
+                {isLoading ? (
+                  '⏳'
+                ) : (
+                  <img src="/github.png" alt="GitHub" />
+                )}
               </GitHubIcon>
-              {isLoading ? 'GitHub로 이동 중...' : 'GitHub로 계속하기'}
+              {isLoading ? 'Redirecting to GitHub...' : 'Continue with GitHub'}
             </GitHubButton>
-
-            <FeaturesList>
-              <FeatureItem>
-                <FeatureIcon>📊</FeatureIcon>
-                <span>프로젝트 통계 및 분석</span>
-              </FeatureItem>
-              <FeatureItem>
-                <FeatureIcon>📈</FeatureIcon>
-                <span>커밋 히트맵 및 트렌드</span>
-              </FeatureItem>
-              <FeatureItem>
-                <FeatureIcon>👥</FeatureIcon>
-                <span>팀 협업 및 기여도 분석</span>
-              </FeatureItem>
-              <FeatureItem>
-                <FeatureIcon>🎯</FeatureIcon>
-                <span>프로젝트 품질 지표</span>
-              </FeatureItem>
-            </FeaturesList>
           </LoginCard>
         </MainContent>
       </LoginContainer>

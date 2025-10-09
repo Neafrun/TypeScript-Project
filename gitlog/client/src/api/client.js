@@ -12,11 +12,15 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 export async function apiGet(path, options = {}) {
+  // JWT 토큰 가져오기
+  const token = localStorage.getItem('token');
+  
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...(options.headers || {}),
     },
   });

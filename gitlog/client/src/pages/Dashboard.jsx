@@ -99,8 +99,8 @@ const Dashboard = () => {
       if (!user) return;
       try {
         setLoadingRepos(true);
-        const data = await apiGet('/api/github/repos');
-        setRepos(data);
+        const response = await apiGet('/api/github/repos');
+        setRepos(response.repos || []);
       } catch (e) {
         setError(e.message);
       } finally {

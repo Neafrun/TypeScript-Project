@@ -13,7 +13,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
-      const cached = localStorage.getItem('gitlog_user');
+      const cached = localStorage.getItem('user');
       return cached ? JSON.parse(cached) : null;
     } catch (_) {
       return null;
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   // eslint-disable-next-line no-unused-vars
   const [token, setToken] = useState(() => {
     try {
-      return localStorage.getItem('gitlog_token');
+      return localStorage.getItem('token');
     } catch (_) {
       return null;
     }
@@ -88,8 +88,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       try { 
-        localStorage.removeItem('gitlog_user'); 
-        localStorage.removeItem('gitlog_token'); 
+        localStorage.removeItem('user'); 
+        localStorage.removeItem('token'); 
       } catch (_) {}
       // 홈페이지로 리다이렉트
       window.location.href = '/';
@@ -99,8 +99,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       try { 
-        localStorage.removeItem('gitlog_user'); 
-        localStorage.removeItem('gitlog_token'); 
+        localStorage.removeItem('user'); 
+        localStorage.removeItem('token'); 
       } catch (_) {}
       window.location.href = '/';
     }
@@ -109,28 +109,41 @@ export const AuthProvider = ({ children }) => {
   const handleCallback = async (code, state) => {
     try {
       setLoading(true);
+      
+      const requestBody = { code, state };
+
       const response = await fetch(`${API_BASE}/api/auth/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code, state }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
         const userData = await response.json();
+        
         setUser(userData);
         setToken(userData.token);
         try { 
           localStorage.setItem('gitlog_user', JSON.stringify(userData)); 
           localStorage.setItem('gitlog_token', userData.token);
-        } catch (_) {}
+        } catch (error) {
+          console.error('❌ AuthContext: localStorage 저장 실패', error);
+        }
+        
         // 페이지 새로고침 대신 상태 업데이트 후 리다이렉트
         setTimeout(() => {
           window.location.href = '/';
         }, 100);
       } else {
-        console.error('인증 실패');
+        const errorData = await response.json().catch(() => ({ error: '응답 파싱 실패' }));
+        console.error('❌ AuthContext: 인증 실패', { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorData 
+        });
+        
         setUser(null);
         setToken(null);
         try { 
@@ -140,12 +153,17 @@ export const AuthProvider = ({ children }) => {
         window.location.href = '/login';
       }
     } catch (error) {
-      console.error('콜백 처리 실패:', error);
+      console.error('❌ AuthContext: 콜백 처리 실패', { 
+        message: error.message, 
+        stack: error.stack,
+        name: error.name 
+      });
+      
       setUser(null);
       setToken(null);
       try { 
-        localStorage.removeItem('gitlog_user'); 
-        localStorage.removeItem('gitlog_token'); 
+        localStorage.removeItem('user'); 
+        localStorage.removeItem('token'); 
       } catch (_) {}
       window.location.href = '/login';
     } finally {
@@ -160,6 +178,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     handleCallback,
     isAuthenticated: !!user,
+    setUser,
+    setToken,
   };
 
   return (

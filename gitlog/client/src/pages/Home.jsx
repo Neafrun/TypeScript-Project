@@ -10,6 +10,23 @@ const HomeContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+  }
 `;
 
 const MainContent = styled.div`
@@ -20,6 +37,8 @@ const MainContent = styled.div`
   margin: 0 auto;
   padding: 4rem 2rem;
   width: 100%;
+  position: relative;
+  z-index: 1;
 `;
 
 const LeftContent = styled.div`
@@ -33,6 +52,7 @@ const MainTitle = styled.h1`
   font-weight: bold;
   margin-bottom: 1.5rem;
   line-height: 1.2;
+  color: white;
 `;
 
 const Subtitle = styled.p`
@@ -40,6 +60,7 @@ const Subtitle = styled.p`
   margin-bottom: 2.5rem;
   line-height: 1.5;
   opacity: 0.95;
+  color: white;
 `;
 
 const StartButton = styled.button`
@@ -55,6 +76,10 @@ const StartButton = styled.button`
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 
   &:hover {
     background-color: #45a049;
@@ -71,8 +96,8 @@ const RightContent = styled.div`
 `;
 
 const LogoImage = styled.img`
-  width: 200px;
-  height: 200px;
+  width: 300px;
+  height: 300px;
   margin-bottom: 1rem;
 `;
 
@@ -107,7 +132,7 @@ const Home = () => {
               Effortlessly track changes, collaborate with your team, and celebrate every milestone.
             </Subtitle>
             <StartButton onClick={handleStartClick}>
-              {user ? '대시보드로 이동' : '시작하기'} <ArrowIcon>→</ArrowIcon>
+              {user ? 'Go to Dashboard' : 'Get Started'} <ArrowIcon>→</ArrowIcon>
             </StartButton>
           </LeftContent>
           <RightContent>
