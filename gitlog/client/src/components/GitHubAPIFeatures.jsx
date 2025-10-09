@@ -1,0 +1,385 @@
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { apiGet } from '../api/client';
+
+const GitHubAPIContainer = styled.div`
+  margin: 2rem 0;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &::before {
+    content: '🔐';
+    font-size: 1.5rem;
+  }
+`;
+
+const FeaturesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`;
+
+const FeatureCard = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e5e9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const FeatureHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+`;
+
+const FeatureIcon = styled.div`
+  font-size: 1.5rem;
+`;
+
+const FeatureTitle = styled.h4`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #24292e;
+  margin: 0;
+`;
+
+const FeatureDescription = styled.p`
+  color: #586069;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+`;
+
+const DataGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+`;
+
+const DataItem = styled.div`
+  text-align: center;
+  padding: 0.75rem;
+  background: #f6f8fa;
+  border-radius: 6px;
+  border: 1px solid #e1e5e9;
+`;
+
+const DataValue = styled.div`
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #24292e;
+  margin-bottom: 0.25rem;
+`;
+
+const DataLabel = styled.div`
+  font-size: 0.8rem;
+  color: #586069;
+  font-weight: 500;
+`;
+
+const LoadingState = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #586069;
+  font-style: italic;
+`;
+
+const ErrorState = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #d73a49;
+  background: #ffeef0;
+  border-radius: 8px;
+  border: 1px solid #f97583;
+`;
+
+const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
+  const [pullRequests, setPullRequests] = useState(null);
+  const [issues, setIssues] = useState(null);
+  const [workflows, setWorkflows] = useState(null);
+  const [releases, setReleases] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    console.log('🔍 [GitHubAPIFeatures] useEffect 실행:', {
+      isLoggedIn: isLoggedIn,
+      repoInfo: repoInfo
+    });
+    
+    if (isLoggedIn && repoInfo) {
+      console.log('🔄 [GitHubAPIFeatures] GitHub API 데이터 가져오기 시작');
+      fetchGitHubAPIData();
+    } else {
+      console.log('⏹️ [GitHubAPIFeatures] 로그인되지 않았거나 repoInfo가 없음');
+      setLoading(false);
+    }
+  }, [isLoggedIn, repoInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchGitHubAPIData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [prs, issuesData, workflowsData, releasesData] = await Promise.allSettled([
+        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/pulls`),
+        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/issues`),
+        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/actions/workflows`),
+        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/releases`)
+      ]);
+
+      if (prs.status === 'fulfilled') setPullRequests(prs.value);
+      if (issuesData.status === 'fulfilled') setIssues(issuesData.value);
+      if (workflowsData.status === 'fulfilled') setWorkflows(workflowsData.value);
+      if (releasesData.status === 'fulfilled') setReleases(releasesData.value);
+
+    } catch (err) {
+      console.error('GitHub API 데이터 가져오기 실패:', err);
+      setError('GitHub API 데이터를 가져오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return null; // 로그인하지 않은 경우 표시하지 않음
+  }
+
+  if (loading) {
+    return (
+      <GitHubAPIContainer>
+        <SectionTitle>GitHub API 연동 기능</SectionTitle>
+        <LoadingState>
+          GitHub 데이터를 불러오는 중...
+        </LoadingState>
+      </GitHubAPIContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <GitHubAPIContainer>
+        <SectionTitle>GitHub API 연동 기능</SectionTitle>
+        <ErrorState>{error}</ErrorState>
+      </GitHubAPIContainer>
+    );
+  }
+
+  return (
+    <GitHubAPIContainer>
+      <SectionTitle>GitHub API 연동 기능</SectionTitle>
+      
+      <FeaturesGrid>
+        {/* Pull Requests 분석 */}
+        <FeatureCard>
+          <FeatureHeader>
+            <FeatureIcon>🔄</FeatureIcon>
+            <FeatureTitle>Pull Requests</FeatureTitle>
+          </FeatureHeader>
+          <FeatureDescription>
+            최근 PR 활동과 리뷰 패턴을 분석합니다.
+          </FeatureDescription>
+          {pullRequests ? (
+            <DataGrid>
+              <DataItem>
+                <DataValue>{pullRequests.open || 0}</DataValue>
+                <DataLabel>Open PRs</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{pullRequests.merged || 0}</DataValue>
+                <DataLabel>Merged</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{pullRequests.closed || 0}</DataValue>
+                <DataLabel>Closed</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{pullRequests.avgReviewTime || 'N/A'}</DataValue>
+                <DataLabel>Avg Review</DataLabel>
+              </DataItem>
+            </DataGrid>
+          ) : (
+            <LoadingState>PR 데이터 로딩 중...</LoadingState>
+          )}
+        </FeatureCard>
+
+        {/* Issues 분석 */}
+        <FeatureCard>
+          <FeatureHeader>
+            <FeatureIcon>🐛</FeatureIcon>
+            <FeatureTitle>Issues & Bugs</FeatureTitle>
+          </FeatureHeader>
+          <FeatureDescription>
+            이슈 추적과 버그 리포트 패턴을 분석합니다.
+          </FeatureDescription>
+          {issues ? (
+            <DataGrid>
+              <DataItem>
+                <DataValue>{issues.open || 0}</DataValue>
+                <DataLabel>Open Issues</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{issues.bugs || 0}</DataValue>
+                <DataLabel>Bug Reports</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{issues.features || 0}</DataValue>
+                <DataLabel>Feature Reqs</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{issues.avgResolutionTime || 'N/A'}</DataValue>
+                <DataLabel>Avg Resolution</DataLabel>
+              </DataItem>
+            </DataGrid>
+          ) : (
+            <LoadingState>Issues 데이터 로딩 중...</LoadingState>
+          )}
+        </FeatureCard>
+
+        {/* CI/CD 워크플로우 */}
+        <FeatureCard>
+          <FeatureHeader>
+            <FeatureIcon>⚙️</FeatureIcon>
+            <FeatureTitle>CI/CD Pipeline</FeatureTitle>
+          </FeatureHeader>
+          <FeatureDescription>
+            GitHub Actions 워크플로우와 배포 상태를 분석합니다.
+          </FeatureDescription>
+          {workflows ? (
+            <DataGrid>
+              <DataItem>
+                <DataValue>{workflows.total || 0}</DataValue>
+                <DataLabel>Workflows</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{workflows.active || 0}</DataValue>
+                <DataLabel>Active</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{workflows.successRate || 'N/A'}%</DataValue>
+                <DataLabel>Success Rate</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{workflows.avgDuration || 'N/A'}</DataValue>
+                <DataLabel>Avg Duration</DataLabel>
+              </DataItem>
+            </DataGrid>
+          ) : (
+            <LoadingState>워크플로우 데이터 로딩 중...</LoadingState>
+          )}
+        </FeatureCard>
+
+        {/* Releases & Tags */}
+        <FeatureCard>
+          <FeatureHeader>
+            <FeatureIcon>🏷️</FeatureIcon>
+            <FeatureTitle>Releases & Tags</FeatureTitle>
+          </FeatureHeader>
+          <FeatureDescription>
+            릴리즈 주기와 버전 관리 패턴을 분석합니다.
+          </FeatureDescription>
+          {releases ? (
+            <DataGrid>
+              <DataItem>
+                <DataValue>{releases.total || 0}</DataValue>
+                <DataLabel>Total Releases</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{releases.latest || 'N/A'}</DataValue>
+                <DataLabel>Latest</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{releases.avgInterval || 'N/A'}</DataValue>
+                <DataLabel>Avg Interval</DataLabel>
+              </DataItem>
+              <DataItem>
+                <DataValue>{releases.preRelease || 0}</DataValue>
+                <DataLabel>Pre-releases</DataLabel>
+              </DataItem>
+            </DataGrid>
+          ) : (
+            <LoadingState>릴리즈 데이터 로딩 중...</LoadingState>
+          )}
+        </FeatureCard>
+
+        {/* 보안 분석 */}
+        <FeatureCard>
+          <FeatureHeader>
+            <FeatureIcon>🔒</FeatureIcon>
+            <FeatureTitle>Security Analysis</FeatureTitle>
+          </FeatureHeader>
+          <FeatureDescription>
+            보안 취약점과 의존성 분석을 제공합니다.
+          </FeatureDescription>
+          <DataGrid>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Dependabot</DataLabel>
+            </DataItem>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Code Scanning</DataLabel>
+            </DataItem>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Secret Scanning</DataLabel>
+            </DataItem>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Vulnerabilities</DataLabel>
+            </DataItem>
+          </DataGrid>
+        </FeatureCard>
+
+        {/* 브랜치 보호 규칙 */}
+        <FeatureCard>
+          <FeatureHeader>
+            <FeatureIcon>🛡️</FeatureIcon>
+            <FeatureTitle>Branch Protection</FeatureTitle>
+          </FeatureHeader>
+          <FeatureDescription>
+            브랜치 보호 규칙과 권한 설정을 확인합니다.
+          </FeatureDescription>
+          <DataGrid>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Protected Branches</DataLabel>
+            </DataItem>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Required Reviews</DataLabel>
+            </DataItem>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Status Checks</DataLabel>
+            </DataItem>
+            <DataItem>
+              <DataValue>GitHub API</DataValue>
+              <DataLabel>Admin Override</DataLabel>
+            </DataItem>
+          </DataGrid>
+        </FeatureCard>
+      </FeaturesGrid>
+    </GitHubAPIContainer>
+  );
+};
+
+export default GitHubAPIFeatures;

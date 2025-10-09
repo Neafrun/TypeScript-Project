@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
+import PremiumFeature from '../components/PremiumFeature';
+import AdvancedAnalysis from '../components/AdvancedAnalysis';
+import GitHubAPIFeatures from '../components/GitHubAPIFeatures';
+import PullRequestsAnalysis from '../components/PullRequestsAnalysis';
+import IssuesAnalysis from '../components/IssuesAnalysis';
+import WorkflowsAnalysis from '../components/WorkflowsAnalysis';
+import ReleasesAnalysis from '../components/ReleasesAnalysis';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiGet, apiPost } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -39,10 +46,6 @@ const Title = styled.h1`
   text-align: center;
   margin-bottom: 1rem;
   text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(45deg, #ffffff, #f0f0f0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 `;
 
 const Subtitle = styled.p`
@@ -423,7 +426,7 @@ const RepositoryAnalysis = () => {
   const [itemsPerPage] = useState(10);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [showBranchModal, setShowBranchModal] = useState(false);
-
+  
   // URL 파라미터에서 레포지토리 정보 가져오기
   useEffect(() => {
     const repoParam = searchParams.get('repo');
@@ -431,6 +434,40 @@ const RepositoryAnalysis = () => {
       setRepositoryUrl(`https://github.com/${repoParam}`);
     }
   }, [searchParams]);
+
+  // GitHub URL 파싱 함수
+  const parseRepositoryUrl = (url) => {
+    // GitHub URL에서 owner/repo 추출
+    const patterns = [
+      /github\.com\/([^\/]+)\/([^\/]+)/,
+      /^([^\/]+)\/([^\/]+)$/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return {
+          owner: match[1],
+          repo: match[2].replace(/\.git$/, '') // .git 제거
+        };
+      }
+    }
+    return null;
+  };
+
+  // 로그인 상태 및 분석 데이터 변수들
+  const isLoggedIn = user && user.login;
+  const analysisData = analysis;
+  const repoInfo = repositoryUrl ? parseRepositoryUrl(repositoryUrl) : null;
+  
+  // 디버깅용 로그
+  console.log('🔍 [RepositoryAnalysis] 로그인 상태 확인:', {
+    user: user,
+    isLoggedIn: isLoggedIn,
+    analysisData: analysisData,
+    repoInfo: repoInfo
+  });
+
 
   // 차트 데이터 생성 함수 - 개선된 코드 품질 기반 평가
   const generateChartData = (contributors) => {
@@ -561,25 +598,6 @@ const RepositoryAnalysis = () => {
     }).sort((a, b) => b.qualityScore - a.qualityScore); // 품질 점수 순으로 정렬
   };
 
-  const parseRepositoryUrl = (url) => {
-    // GitHub URL에서 owner/repo 추출
-    const patterns = [
-      /github\.com\/([^\/]+)\/([^\/]+)/,
-      /^([^\/]+)\/([^\/]+)$/
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) {
-        return {
-          owner: match[1],
-          repo: match[2].replace(/\.git$/, '') // .git 제거
-        };
-      }
-    }
-    return null;
-  };
-
   const handleBranchClick = (branch) => {
     setSelectedBranch(branch);
     setShowBranchModal(true);
@@ -601,6 +619,14 @@ const RepositoryAnalysis = () => {
     setError('');
     setAnalysis(null);
     setCurrentPage(1); // 새 분석 시작 시 첫 페이지로 리셋
+
+    // 로딩 타임아웃 설정 (최대 60초)
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⚠️ [프론트엔드] 로딩 타임아웃 발생, 강제로 로딩 해제');
+        setLoading(false);
+      }
+    }, 60000);
 
     try {
       // 로그인된 사용자인지 확인하여 적절한 API 엔드포인트 선택
@@ -702,12 +728,15 @@ const RepositoryAnalysis = () => {
       }
 
       // 4. 레포지토리 분석 수행
-      const analysisData = await apiPost(`${baseEndpoint}/analyze`, {
+      const analysisResponse = await apiPost(`${baseEndpoint}/analyze`, {
         owner: repoInfo.owner,
         repo: repoInfo.repo,
         commits: recentCommitsData,
         contributors: commitsData
       });
+
+      // 백엔드 응답 구조에 맞게 분석 데이터 추출
+      const analysisData = analysisResponse.analysis || analysisResponse;
 
       setAnalysis({
         ...analysisData,
@@ -716,18 +745,33 @@ const RepositoryAnalysis = () => {
         totalCommitsAcrossBranches: totalCommitsAcrossBranches
       });
 
+      console.log('✅ [프론트엔드] 분석 데이터 설정 완료, 로딩 해제 예정');
+
     } catch (err) {
       console.error('Repository analysis error:', err);
       
       // 더 구체적인 오류 메시지 제공
       let errorMessage = err.message;
       
-      if (err.response?.status === 403) {
+      // 403 에러 또는 API rate limit 관련 에러 처리
+      if (err.response?.status === 403 || err.message.includes('403') || err.message.includes('API rate limit')) {
         const errorData = err.response?.data;
-        if (errorData?.message) {
+        if ((errorData?.message && errorData.message.includes('API rate limit exceeded')) || 
+            err.message.includes('API rate limit exceeded')) {
+          // API rate limit 에러는 실제로는 private repository 접근 거부
+          if (!user || !user.login) {
+            errorMessage = '🔒 Private Repository Access Denied\n\nThis repository is private and requires GitHub authentication to analyze.\n\nPlease log in with your GitHub account to access private repositories and unlock advanced analysis features.';
+          } else {
+            errorMessage = 'Access denied. This repository is private. You may not have permission to access this repository.';
+          }
+        } else if (errorData?.message) {
           errorMessage = errorData.message;
         } else {
-          errorMessage = 'Access denied. This repository is private. Please log in to access private repositories.';
+          if (!user || !user.login) {
+            errorMessage = '🔒 Private Repository Access Denied\n\nThis repository is private and requires GitHub authentication to analyze.\n\nPlease log in with your GitHub account to access private repositories and unlock advanced analysis features.';
+          } else {
+            errorMessage = 'Access denied. This repository is private. You may not have permission to access this repository.';
+          }
         }
       } else if (err.response?.status === 404) {
         const errorData = err.response?.data;
@@ -742,6 +786,8 @@ const RepositoryAnalysis = () => {
       
       setError(errorMessage);
     } finally {
+      console.log('🔄 [프론트엔드] 로딩 상태 해제');
+      clearTimeout(loadingTimeout);
       setLoading(false);
     }
   };
@@ -755,7 +801,7 @@ const RepositoryAnalysis = () => {
         handleAnalyze();
       }, 500);
     }
-  }, [searchParams, repositoryUrl, loading, analysis]);
+  }, [searchParams, repositoryUrl, loading, analysis]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Layout>
@@ -783,13 +829,16 @@ const RepositoryAnalysis = () => {
             {!user && (
               <div style={{ 
                 marginTop: '1rem', 
-                padding: '0.75rem', 
-                background: 'rgba(255, 255, 255, 0.1)', 
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                color: 'rgba(255, 255, 255, 0.9)'
+                padding: '1rem', 
+                background: 'rgba(255, 255, 255, 0.95)', 
+                borderRadius: '12px',
+                fontSize: '0.95rem',
+                color: '#333',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                textAlign: 'center',
+                fontWeight: '500'
               }}>
-                💡 <strong>Tip:</strong> Log in to analyze your private repositories and get enhanced features!
+                💡 <strong>Login Tip:</strong> Log in to analyze your private repositories and get enhanced features!
               </div>
             )}
           </InputCard>
@@ -797,7 +846,7 @@ const RepositoryAnalysis = () => {
           {error && (
             <ErrorMessage style={{ 
               whiteSpace: 'pre-line', 
-              textAlign: 'left', 
+              textAlign: 'center', 
               lineHeight: '1.6',
               fontSize: '0.9rem'
             }}>
@@ -820,7 +869,7 @@ const RepositoryAnalysis = () => {
                 <ChartSubtitle>Contributor-wise code quality assessment</ChartSubtitle>
                 <ResponsiveContainer width="100%" height={400}>
                   <BarChart
-                    data={generateChartData(analysis.analysis.contributionPattern.metrics.distribution)}
+                    data={generateChartData(analysis.contributionPattern?.metrics?.distribution || [])}
                     margin={{ top: 20, right: 30, left: 60, bottom: 20 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -852,7 +901,7 @@ const RepositoryAnalysis = () => {
                       name="qualityScore" 
                       radius={[4, 4, 0, 0]}
                     >
-                      {generateChartData(analysis.analysis.contributionPattern.metrics.distribution).map((entry, index) => {
+                      {generateChartData(analysis.contributionPattern?.metrics?.distribution || []).map((entry, index) => {
                         const score = entry.qualityScore;
                         let color = '#9E9E9E'; // 기본 회색
                         
@@ -906,7 +955,7 @@ const RepositoryAnalysis = () => {
                   marginTop: '20px',
                   padding: '0 20px'
                 }}>
-                  {generateChartData(analysis.analysis.contributionPattern.metrics.distribution).map((contributor, index) => (
+                  {generateChartData(analysis.contributionPattern?.metrics?.distribution || []).map((contributor, index) => (
                     <div key={index} style={{ 
                       display: 'flex', 
                       flexDirection: 'column', 
@@ -1078,9 +1127,9 @@ const RepositoryAnalysis = () => {
                     }}>
                       {analysis.branchStats.map((branch, index) => {
                         // 브랜치별 품질 점수 계산
-                        const branchCommits = analysis.analysis.contributionPattern.metrics.distribution.filter(
+                        const branchCommits = analysis.contributionPattern?.metrics?.distribution?.filter(
                           contributor => contributor.weeks && contributor.weeks.length > 0
-                        ).length;
+                        )?.length || 0;
                         
                         let branchQualityScore = 0;
                         if (branch.commitCount > 50) branchQualityScore += 40;
@@ -1239,21 +1288,21 @@ const RepositoryAnalysis = () => {
                 </>
               ) : (
                 <MetricGrid>
-                  <MetricCard color={analysis.analysis.codeQuality.score >= 80 ? '#28a745' : analysis.analysis.codeQuality.score >= 60 ? '#ffc107' : '#dc3545'}>
+                  <MetricCard color={(analysis.codeQuality?.score || 0) >= 80 ? '#28a745' : (analysis.codeQuality?.score || 0) >= 60 ? '#ffc107' : '#dc3545'}>
                     <MetricTitle>Overall Quality Score</MetricTitle>
-                    <MetricValue>{analysis.analysis.codeQuality.score}/100</MetricValue>
+                    <MetricValue>{analysis.codeQuality?.score || 0}/100</MetricValue>
                   </MetricCard>
                   <MetricCard>
                     <MetricTitle>Quality Level</MetricTitle>
-                    <MetricValue>{analysis.analysis.codeQuality.level}</MetricValue>
+                    <MetricValue>{analysis.codeQuality?.level || '분석 중...'}</MetricValue>
                   </MetricCard>
                   <MetricCard>
                     <MetricTitle>Total Commits</MetricTitle>
-                    <MetricValue>{analysis.analysis.codeQuality.metrics.totalCommits}</MetricValue>
+                    <MetricValue>{analysis.codeQuality?.metrics?.totalCommits || 0}</MetricValue>
                   </MetricCard>
                   <MetricCard>
                     <MetricTitle>Contributors</MetricTitle>
-                    <MetricValue>{analysis.analysis.codeQuality.metrics.contributorsCount}</MetricValue>
+                    <MetricValue>{analysis.codeQuality?.metrics?.contributorsCount || 0}</MetricValue>
                   </MetricCard>
                 </MetricGrid>
               )}
@@ -1263,7 +1312,7 @@ const RepositoryAnalysis = () => {
                 Overall contributor rankings based on contributions across all branches.
               </p>
               
-                     {analysis.analysis.contributionPattern.metrics.distribution && analysis.analysis.contributionPattern.metrics.distribution.length > 0 && (
+                     {analysis.contributionPattern?.metrics?.distribution && analysis.contributionPattern.metrics.distribution.length > 0 && (
                        <>
                          <div style={{
                            display: 'grid',
@@ -1271,7 +1320,7 @@ const RepositoryAnalysis = () => {
                            gap: '1rem',
                            marginBottom: '2rem'
                          }}>
-                           {analysis.analysis.contributionPattern.metrics.distribution
+                           {analysis.contributionPattern.metrics.distribution
                              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                              .map((contributor, index) => (
                     <div key={index} style={{
@@ -1365,7 +1414,7 @@ const RepositoryAnalysis = () => {
                          </div>
                          
                          {/* 페이지네이션 컨트롤 */}
-                         {analysis.analysis.contributionPattern.metrics.distribution.length > itemsPerPage && (
+                         {analysis.contributionPattern?.metrics?.distribution?.length > itemsPerPage && (
                            <div style={{
                              display: 'flex',
                              justifyContent: 'center',
@@ -1390,19 +1439,19 @@ const RepositoryAnalysis = () => {
                              </button>
                              
                              <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                               {currentPage} / {Math.ceil(analysis.analysis.contributionPattern.metrics.distribution.length / itemsPerPage)} pages
+                               {currentPage} / {Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage)} pages
                              </span>
                              
                              <button
-                               onClick={() => setCurrentPage(Math.min(Math.ceil(analysis.analysis.contributionPattern.metrics.distribution.length / itemsPerPage), currentPage + 1))}
-                               disabled={currentPage === Math.ceil(analysis.analysis.contributionPattern.metrics.distribution.length / itemsPerPage)}
+                               onClick={() => setCurrentPage(Math.min(Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage), currentPage + 1))}
+                               disabled={currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage)}
                                style={{
                                  padding: '0.5rem 1rem',
                                  border: '1px solid #ddd',
                                  borderRadius: '6px',
-                                 backgroundColor: currentPage === Math.ceil(analysis.analysis.contributionPattern.metrics.distribution.length / itemsPerPage) ? '#f5f5f5' : 'white',
-                                 cursor: currentPage === Math.ceil(analysis.analysis.contributionPattern.metrics.distribution.length / itemsPerPage) ? 'not-allowed' : 'pointer',
-                                 color: currentPage === Math.ceil(analysis.analysis.contributionPattern.metrics.distribution.length / itemsPerPage) ? '#999' : '#333'
+                                 backgroundColor: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? '#f5f5f5' : 'white',
+                                 cursor: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? 'not-allowed' : 'pointer',
+                                 color: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? '#999' : '#333'
                                }}
                              >
                                Next
@@ -1465,34 +1514,116 @@ const RepositoryAnalysis = () => {
               )}
 
               <SectionTitle>Activity Level</SectionTitle>
-              <p>{analysis.analysis.activityLevel.description}</p>
+              <p>{analysis.activityLevel?.description || '분석 중...'}</p>
               <MetricGrid>
                 <MetricCard>
                   <MetricTitle>Activity Level</MetricTitle>
-                  <MetricValue>{analysis.analysis.activityLevel.level}</MetricValue>
+                  <MetricValue>{analysis.activityLevel?.level || '분석 중...'}</MetricValue>
                 </MetricCard>
                 <MetricCard>
                   <MetricTitle>Recent Commits</MetricTitle>
-                  <MetricValue>{analysis.analysis.activityLevel.metrics.recentCommits}</MetricValue>
+                  <MetricValue>{analysis.activityLevel?.metrics?.recentCommits || 0}</MetricValue>
                 </MetricCard>
                 <MetricCard>
                   <MetricTitle>Last Commit</MetricTitle>
-                  <MetricValue>{analysis.analysis.activityLevel.metrics.lastCommitDate ? new Date(analysis.analysis.activityLevel.metrics.lastCommitDate).toLocaleDateString() : 'N/A'}</MetricValue>
+                  <MetricValue>{analysis.activityLevel?.metrics?.lastCommitDate ? new Date(analysis.activityLevel.metrics.lastCommitDate).toLocaleDateString() : 'N/A'}</MetricValue>
                 </MetricCard>
               </MetricGrid>
 
               <SectionTitle>Recommendations</SectionTitle>
               <RecommendationList>
-                {analysis.analysis.recommendations.map((rec, index) => (
+                {analysis.recommendations?.map((rec, index) => (
                   <RecommendationItem key={index} priority={rec.priority}>
                     <PriorityBadge priority={rec.priority}>{rec.priority}</PriorityBadge>
                     <strong>{rec.title}:</strong> {rec.description}
                   </RecommendationItem>
-                ))}
+                )) || (
+                  <RecommendationItem priority="low">
+                    <PriorityBadge priority="low">정보</PriorityBadge>
+                    <strong>분석 완료:</strong> 현재 분석 데이터를 기반으로 추천사항을 준비 중입니다.
+                  </RecommendationItem>
+                )}
               </RecommendationList>
               </ResultsCard>
+
+              {/* 프리미엄 기능들 */}
+              {/* 고급 분석 - 로그인 사용자 전용 */}
+              <PremiumFeature
+                title="고급 분석 & AI 인사이트"
+                description="머신러닝 기반 코드 품질 분석, 커밋 패턴 분석, 팀 협업 지표, 프로젝트 건강도 평가 등 고급 분석 기능을 제공합니다."
+                isLoggedIn={isLoggedIn}
+                onLoginClick={() => window.location.href = '/api/auth/github'}
+              >
+                <AdvancedAnalysis analysisData={analysisData} repoInfo={repoInfo} />
+              </PremiumFeature>
+
+              {/* GitHub API 연동 기능들 - 개별 컴포넌트로 분리 */}
+              {isLoggedIn && repoInfo ? (
+                <>
+                  <PullRequestsAnalysis repoInfo={repoInfo} />
+                  <IssuesAnalysis repoInfo={repoInfo} />
+                  <WorkflowsAnalysis repoInfo={repoInfo} />
+                  <ReleasesAnalysis repoInfo={repoInfo} />
+                </>
+              ) : (
+                <PremiumFeature
+                  title="GitHub API 연동 기능"
+                  description="Pull Requests, Issues, CI/CD 워크플로우, 릴리즈 관리 등 GitHub의 모든 기능을 통합 분석합니다."
+                  isLoggedIn={isLoggedIn}
+                  onLoginClick={() => window.location.href = '/api/auth/github'}
+                >
+                  <div style={{ 
+                    background: 'white', 
+                    padding: '2rem', 
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                    textAlign: 'center',
+                    color: '#666'
+                  }}>
+                    로그인 후 GitHub API 기능을 사용할 수 있습니다.
+                  </div>
+                </PremiumFeature>
+              )}
+
+              {/* 추가 프리미엄 기능들 */}
+              <PremiumFeature
+                title="코드 품질 분석"
+                description="코드 복잡도, 유지보수성, 테스트 커버리지 등 상세한 코드 품질 메트릭을 제공합니다."
+                isLoggedIn={isLoggedIn}
+                onLoginClick={() => window.location.href = '/api/auth/github'}
+              >
+                <div style={{ 
+                  background: 'white', 
+                  padding: '1.5rem', 
+                  borderRadius: '8px',
+                  border: '1px solid #e1e5e9',
+                  textAlign: 'center',
+                  color: '#666'
+                }}>
+                  로그인 후 상세한 코드 품질 분석을 확인할 수 있습니다.
+                </div>
+              </PremiumFeature>
+
+              <PremiumFeature
+                title="팀 협업 분석"
+                description="개발자별 생산성 지표, 코드 리뷰 패턴, 팀 동역학 분석 등을 제공합니다."
+                isLoggedIn={isLoggedIn}
+                onLoginClick={() => window.location.href = '/api/auth/github'}
+              >
+                <div style={{ 
+                  background: 'white', 
+                  padding: '1.5rem', 
+                  borderRadius: '8px',
+                  border: '1px solid #e1e5e9',
+                  textAlign: 'center',
+                  color: '#666'
+                }}>
+                  로그인 후 팀 협업 분석 기능을 사용할 수 있습니다.
+                </div>
+              </PremiumFeature>
             </>
           )}
+
         </MainContent>
       </AnalysisContainer>
 

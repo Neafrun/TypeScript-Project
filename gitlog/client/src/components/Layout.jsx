@@ -12,6 +12,7 @@ const LayoutContainer = styled.div`
 const MainContent = styled.main`
   flex: 1;
   width: 100%;
+  transition: opacity 0.15s ease-in-out;
 `;
 
 const Layout = ({ children }) => {

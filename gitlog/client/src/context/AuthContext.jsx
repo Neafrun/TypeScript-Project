@@ -13,7 +13,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
-      const cached = localStorage.getItem('user');
+      const cached = localStorage.getItem('gitlog_user');
       return cached ? JSON.parse(cached) : null;
     } catch (_) {
       return null;
@@ -22,13 +22,13 @@ export const AuthProvider = ({ children }) => {
   // eslint-disable-next-line no-unused-vars
   const [token, setToken] = useState(() => {
     try {
-      return localStorage.getItem('token');
+      return localStorage.getItem('gitlog_token');
     } catch (_) {
       return null;
     }
   });
   const [loading, setLoading] = useState(true);
-  const API_BASE = 'http://localhost:5000';
+  const API_BASE = process.env.REACT_APP_API_URL || '';
 
   useEffect(() => {
     // 사용자가 이미 로그인되어 있는지 확인
@@ -88,8 +88,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       try { 
-        localStorage.removeItem('user'); 
-        localStorage.removeItem('token'); 
+        localStorage.removeItem('gitlog_user'); 
+        localStorage.removeItem('gitlog_token'); 
       } catch (_) {}
       // 홈페이지로 리다이렉트
       window.location.href = '/';
@@ -99,8 +99,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       try { 
-        localStorage.removeItem('user'); 
-        localStorage.removeItem('token'); 
+        localStorage.removeItem('gitlog_user'); 
+        localStorage.removeItem('gitlog_token'); 
       } catch (_) {}
       window.location.href = '/';
     }
@@ -162,8 +162,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       try { 
-        localStorage.removeItem('user'); 
-        localStorage.removeItem('token'); 
+        localStorage.removeItem('gitlog_user'); 
+        localStorage.removeItem('gitlog_token'); 
       } catch (_) {}
       window.location.href = '/login';
     } finally {

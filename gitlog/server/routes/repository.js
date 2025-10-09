@@ -197,6 +197,12 @@ router.get('/public/commits/:owner/:repo', async (req, res) => {
       null // 토큰 없이 공개 API 사용
     );
 
+    // statsData가 배열인지 확인
+    if (!Array.isArray(statsData)) {
+      console.log(`📥 [공개 커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: 0명의 기여자 (데이터 없음)`);
+      return res.json([]);
+    }
+
     console.log(`📥 [공개 커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: ${statsData.length}명의 기여자`);
 
     // 기여자 데이터 정리
@@ -257,6 +263,12 @@ router.get('/commits/:owner/:repo', authenticateToken, async (req, res) => {
       `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
       accessToken
     );
+
+    // statsData가 배열인지 확인
+    if (!Array.isArray(statsData)) {
+      console.log(`📥 [커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: 0명의 기여자 (데이터 없음)`);
+      return res.json([]);
+    }
 
     console.log(`📥 [커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: ${statsData.length}명의 기여자`);
 
@@ -418,8 +430,13 @@ router.get('/public/all-commits/:owner/:repo', async (req, res) => {
           await Promise.race([protectionPromise, protectionTimeout]);
           branchProtected = true;
         } catch (protectionError) {
-          // 보호되지 않은 브랜치 또는 타임아웃
-          console.log(`브랜치 ${branch.name} 보호 상태 확인 실패:`, protectionError.message);
+          // 보호되지 않은 브랜치 또는 권한 없음 - 정상적인 상황
+          if (protectionError.response?.status === 404) {
+            // 404는 브랜치가 보호되지 않았거나 API 권한이 없는 경우
+            console.log(`브랜치 ${branch.name}: 보호 설정 없음 (정상)`);
+          } else {
+            console.log(`브랜치 ${branch.name} 보호 상태 확인 실패:`, protectionError.message);
+          }
         }
 
         branchStats.push({
@@ -575,8 +592,13 @@ router.get('/all-commits/:owner/:repo', authenticateToken, async (req, res) => {
           await Promise.race([protectionPromise, protectionTimeout]);
           branchProtected = true;
         } catch (protectionError) {
-          // 보호되지 않은 브랜치 또는 타임아웃
-          console.log(`브랜치 ${branch.name} 보호 상태 확인 실패:`, protectionError.message);
+          // 보호되지 않은 브랜치 또는 권한 없음 - 정상적인 상황
+          if (protectionError.response?.status === 404) {
+            // 404는 브랜치가 보호되지 않았거나 API 권한이 없는 경우
+            console.log(`브랜치 ${branch.name}: 보호 설정 없음 (정상)`);
+          } else {
+            console.log(`브랜치 ${branch.name} 보호 상태 확인 실패:`, protectionError.message);
+          }
         }
 
         branchStats.push({

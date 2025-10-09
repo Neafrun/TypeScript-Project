@@ -293,4 +293,288 @@ router.get('/repos/:owner/:repo/contributors', async (req, res) => {
   }
 });
 
+// Pull Requests 분석
+router.get('/repos/:owner/:repo/pulls', async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    console.log(`🔄 [GitHub API] 저장소 ${owner}/${repo}의 Pull Requests를 요청받았습니다`);
+
+    const authHeader = req.headers.authorization;
+    const jwtToken = authHeader && authHeader.split(' ')[1];
+
+    if (!jwtToken) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
+    const githubAccessToken = decoded.githubAccessToken;
+
+    if (!githubAccessToken) {
+      return res.status(401).json({ error: 'GitHub access token not found in JWT' });
+    }
+
+    // Open PRs 가져오기
+    const openPRs = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      params: { state: 'open', per_page: 100 }
+    });
+
+    // Closed PRs 가져오기
+    const closedPRs = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      params: { state: 'closed', per_page: 100 }
+    });
+
+    const allPRs = [...openPRs.data, ...closedPRs.data];
+    const mergedPRs = allPRs.filter(pr => pr.merged_at);
+
+    // 평균 리뷰 시간 계산
+    const avgReviewTime = allPRs.length > 0 ? 
+      allPRs.reduce((sum, pr) => {
+        if (pr.created_at && pr.merged_at) {
+          const created = new Date(pr.created_at);
+          const merged = new Date(pr.merged_at);
+          return sum + (merged - created);
+        }
+        return sum;
+      }, 0) / allPRs.length : 0;
+
+    res.json({
+      open: openPRs.data.length,
+      closed: closedPRs.data.length,
+      merged: mergedPRs.length,
+      avgReviewTime: avgReviewTime > 0 ? Math.round(avgReviewTime / (1000 * 60 * 60 * 24)) : 'N/A'
+    });
+
+  } catch (error) {
+    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Pull Requests를 가져오는 중 오류:`, error.message);
+    res.status(500).json({
+      error: 'Failed to fetch pull requests',
+      message: error.message
+    });
+  }
+});
+
+// Issues 분석
+router.get('/repos/:owner/:repo/issues', async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    console.log(`🔄 [GitHub API] 저장소 ${owner}/${repo}의 Issues를 요청받았습니다`);
+
+    const authHeader = req.headers.authorization;
+    const jwtToken = authHeader && authHeader.split(' ')[1];
+
+    if (!jwtToken) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
+    const githubAccessToken = decoded.githubAccessToken;
+
+    if (!githubAccessToken) {
+      return res.status(401).json({ error: 'GitHub access token not found in JWT' });
+    }
+
+    // Open Issues 가져오기
+    const openIssues = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      params: { state: 'open', per_page: 100 }
+    });
+
+    // Closed Issues 가져오기
+    const closedIssues = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      params: { state: 'closed', per_page: 100 }
+    });
+
+    const allIssues = [...openIssues.data, ...closedIssues.data];
+    
+    // 버그와 기능 요청 분류
+    const bugs = allIssues.filter(issue => 
+      issue.labels.some(label => 
+        label.name.toLowerCase().includes('bug') || 
+        label.name.toLowerCase().includes('error') ||
+        label.name.toLowerCase().includes('fix')
+      )
+    );
+
+    const features = allIssues.filter(issue => 
+      issue.labels.some(label => 
+        label.name.toLowerCase().includes('feature') || 
+        label.name.toLowerCase().includes('enhancement') ||
+        label.name.toLowerCase().includes('improvement')
+      )
+    );
+
+    // 평균 해결 시간 계산
+    const avgResolutionTime = closedIssues.data.length > 0 ? 
+      closedIssues.data.reduce((sum, issue) => {
+        if (issue.created_at && issue.closed_at) {
+          const created = new Date(issue.created_at);
+          const closed = new Date(issue.closed_at);
+          return sum + (closed - created);
+        }
+        return sum;
+      }, 0) / closedIssues.data.length : 0;
+
+    res.json({
+      open: openIssues.data.length,
+      closed: closedIssues.data.length,
+      bugs: bugs.length,
+      features: features.length,
+      avgResolutionTime: avgResolutionTime > 0 ? Math.round(avgResolutionTime / (1000 * 60 * 60 * 24)) : 'N/A'
+    });
+
+  } catch (error) {
+    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Issues를 가져오는 중 오류:`, error.message);
+    res.status(500).json({
+      error: 'Failed to fetch issues',
+      message: error.message
+    });
+  }
+});
+
+// GitHub Actions 워크플로우 분석
+router.get('/repos/:owner/:repo/actions/workflows', async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    console.log(`🔄 [GitHub API] 저장소 ${owner}/${repo}의 Actions 워크플로우를 요청받았습니다`);
+
+    const authHeader = req.headers.authorization;
+    const jwtToken = authHeader && authHeader.split(' ')[1];
+
+    if (!jwtToken) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
+    const githubAccessToken = decoded.githubAccessToken;
+
+    if (!githubAccessToken) {
+      return res.status(401).json({ error: 'GitHub access token not found in JWT' });
+    }
+
+    // 워크플로우 목록 가져오기
+    const workflows = await axios.get(`https://api.github.com/repos/${owner}/${repo}/actions/workflows`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    // 최근 실행 기록 가져오기
+    const runs = await axios.get(`https://api.github.com/repos/${owner}/${repo}/actions/runs`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      params: { per_page: 100 }
+    });
+
+    const totalWorkflows = workflows.data.total_count;
+    const activeWorkflows = workflows.data.workflows.filter(w => w.state === 'active').length;
+    
+    const successfulRuns = runs.data.workflow_runs.filter(run => run.conclusion === 'success').length;
+    const totalRuns = runs.data.workflow_runs.length;
+    const successRate = totalRuns > 0 ? Math.round((successfulRuns / totalRuns) * 100) : 0;
+
+    const avgDuration = totalRuns > 0 ? 
+      runs.data.workflow_runs.reduce((sum, run) => {
+        if (run.created_at && run.updated_at) {
+          const created = new Date(run.created_at);
+          const updated = new Date(run.updated_at);
+          return sum + (updated - created);
+        }
+        return sum;
+      }, 0) / totalRuns : 0;
+
+    res.json({
+      total: totalWorkflows,
+      active: activeWorkflows,
+      successRate: successRate,
+      avgDuration: avgDuration > 0 ? Math.round(avgDuration / (1000 * 60)) : 'N/A'
+    });
+
+  } catch (error) {
+    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Actions 워크플로우를 가져오는 중 오류:`, error.message);
+    res.status(500).json({
+      error: 'Failed to fetch workflows',
+      message: error.message
+    });
+  }
+});
+
+// Releases 분석
+router.get('/repos/:owner/:repo/releases', async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    console.log(`🔄 [GitHub API] 저장소 ${owner}/${repo}의 Releases를 요청받았습니다`);
+
+    const authHeader = req.headers.authorization;
+    const jwtToken = authHeader && authHeader.split(' ')[1];
+
+    if (!jwtToken) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET);
+    const githubAccessToken = decoded.githubAccessToken;
+
+    if (!githubAccessToken) {
+      return res.status(401).json({ error: 'GitHub access token not found in JWT' });
+    }
+
+    // Releases 가져오기
+    const releases = await axios.get(`https://api.github.com/repos/${owner}/${repo}/releases`, {
+      headers: {
+        'Authorization': `Bearer ${githubAccessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      params: { per_page: 100 }
+    });
+
+    const totalReleases = releases.data.length;
+    const preReleases = releases.data.filter(release => release.prerelease).length;
+    const latestRelease = totalReleases > 0 ? releases.data[0].tag_name : 'N/A';
+
+    // 평균 릴리즈 간격 계산
+    let avgInterval = 'N/A';
+    if (totalReleases > 1) {
+      const intervals = [];
+      for (let i = 0; i < totalReleases - 1; i++) {
+        const current = new Date(releases.data[i].created_at);
+        const next = new Date(releases.data[i + 1].created_at);
+        intervals.push(current - next);
+      }
+      avgInterval = Math.round(intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length / (1000 * 60 * 60 * 24));
+    }
+
+    res.json({
+      total: totalReleases,
+      latest: latestRelease,
+      avgInterval: avgInterval,
+      preRelease: preReleases
+    });
+
+  } catch (error) {
+    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Releases를 가져오는 중 오류:`, error.message);
+    res.status(500).json({
+      error: 'Failed to fetch releases',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

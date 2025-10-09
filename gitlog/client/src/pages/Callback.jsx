@@ -74,8 +74,8 @@ const Callback = () => {
             const userData = JSON.parse(decodeURIComponent(user));
             
             // localStorage에 토큰 저장
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('gitlog_token', token);
+            localStorage.setItem('gitlog_user', JSON.stringify(userData));
             
             // AuthContext 상태 업데이트
             setToken(token);

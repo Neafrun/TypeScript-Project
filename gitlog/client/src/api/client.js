@@ -13,7 +13,7 @@ export const API_BASE_URL = getApiBaseUrl();
 
 export async function apiGet(path, options = {}) {
   // JWT 토큰 가져오기
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('gitlog_token');
   
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
@@ -33,7 +33,7 @@ export async function apiGet(path, options = {}) {
 
 export async function apiPost(path, data, options = {}) {
   // JWT 토큰 가져오기
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('gitlog_token');
   
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',

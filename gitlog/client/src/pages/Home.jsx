@@ -141,7 +141,7 @@ const Home = () => {
               Effortlessly track changes, collaborate with your team, and celebrate every milestone.
             </Subtitle>
             {!user && (
-              <LoginPrompt>
+              <LoginPrompt style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
                 Login to access enhanced repository analysis features and AI-powered insights
               </LoginPrompt>
             )}
