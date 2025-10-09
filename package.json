@@ -1,0 +1,14 @@
+{
+  "name": "gitlog-fullstack",
+  "version": "1.0.0",
+  "description": "GitLog 풀스택 애플리케이션",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd gitlog/server && npm run dev",
+    "client": "cd gitlog/client && npm start",
+    "install-all": "npm install && cd gitlog/server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}

@@ -19,18 +19,31 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   });
+  // eslint-disable-next-line no-unused-vars
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('gitlog_token');
+    } catch (_) {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
-  const API_BASE = (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.trim())
-    || (typeof window !== 'undefined' && window.location && window.location.origin
-      ? window.location.origin.replace(':3000', ':5000')
-      : 'http://localhost:5000');
+  const API_BASE = 'http://localhost:5000';
 
   useEffect(() => {
     // 사용자가 이미 로그인되어 있는지 확인
     const checkAuth = async () => {
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch(`${API_BASE}/api/auth/me`, {
-          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
         });
         
         if (response.ok) {
@@ -38,61 +51,105 @@ export const AuthProvider = ({ children }) => {
           setUser(userData);
           try { localStorage.setItem('gitlog_user', JSON.stringify(userData)); } catch (_) {}
         } else {
-          try { localStorage.removeItem('gitlog_user'); } catch (_) {}
+          setUser(null);
+          setToken(null);
+          try { 
+            localStorage.removeItem('gitlog_user'); 
+            localStorage.removeItem('gitlog_token'); 
+          } catch (_) {}
         }
       } catch (error) {
         console.error('인증 확인 실패:', error);
+        setUser(null);
+        setToken(null);
+        try { 
+          localStorage.removeItem('gitlog_user'); 
+          localStorage.removeItem('gitlog_token'); 
+        } catch (_) {}
       } finally {
         setLoading(false);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [API_BASE, token]);
 
   const login = () => {
-    const url = `${API_BASE}/api/auth/github`;
-    window.location.href = url;
+    try {
+      const url = `${API_BASE}/api/auth/github`;
+      window.location.href = url;
+    } catch (error) {
+      console.error('로그인 리다이렉트 실패:', error);
+    }
   };
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
       setUser(null);
-      try { localStorage.removeItem('gitlog_user'); } catch (_) {}
+      setToken(null);
+      try { 
+        localStorage.removeItem('gitlog_user'); 
+        localStorage.removeItem('gitlog_token'); 
+      } catch (_) {}
+      // 홈페이지로 리다이렉트
       window.location.href = '/';
     } catch (error) {
       console.error('로그아웃 실패:', error);
+      // 에러가 발생해도 로컬 상태는 초기화
+      setUser(null);
+      setToken(null);
+      try { 
+        localStorage.removeItem('gitlog_user'); 
+        localStorage.removeItem('gitlog_token'); 
+      } catch (_) {}
+      window.location.href = '/';
     }
   };
 
   const handleCallback = async (code, state) => {
     try {
+      setLoading(true);
       const response = await fetch(`${API_BASE}/api/auth/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({ code, state }),
       });
 
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
-        try { localStorage.setItem('gitlog_user', JSON.stringify(userData)); } catch (_) {}
-        try { window.alert('로그인 완료!'); } catch (e) {}
-        window.location.href = '/dashboard';
+        setToken(userData.token);
+        try { 
+          localStorage.setItem('gitlog_user', JSON.stringify(userData)); 
+          localStorage.setItem('gitlog_token', userData.token);
+        } catch (_) {}
+        // 페이지 새로고침 대신 상태 업데이트 후 리다이렉트
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
       } else {
         console.error('인증 실패');
+        setUser(null);
+        setToken(null);
+        try { 
+          localStorage.removeItem('gitlog_user'); 
+          localStorage.removeItem('gitlog_token'); 
+        } catch (_) {}
         window.location.href = '/login';
       }
     } catch (error) {
       console.error('콜백 처리 실패:', error);
+      setUser(null);
+      setToken(null);
+      try { 
+        localStorage.removeItem('gitlog_user'); 
+        localStorage.removeItem('gitlog_token'); 
+      } catch (_) {}
       window.location.href = '/login';
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,6 +159,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     handleCallback,
+    isAuthenticated: !!user,
   };
 
   return (

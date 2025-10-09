@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 
 const CallbackContainer = styled.div`
@@ -37,19 +38,37 @@ const Spinner = styled.div`
 
 const Callback = () => {
   const { handleCallback } = useAuth();
+  const [status, setStatus] = useState('인증을 완료하는 중...');
 
   useEffect(() => {
-    // OAuth 콜백 처리
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
+    const processCallback = async () => {
+      try {
+        setStatus('GitHub에서 인증 정보를 가져오는 중...');
+        
+        // OAuth 콜백 처리
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
 
-    if (code && state) {
-      handleCallback(code, state);
-    } else {
-      // 코드가 없으면 홈으로 리다이렉트
-      window.location.href = '/';
-    }
+        if (code && state) {
+          setStatus('로그인을 처리하는 중...');
+          await handleCallback(code, state);
+        } else {
+          setStatus('인증 코드를 찾을 수 없습니다. 홈으로 이동합니다...');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('콜백 처리 오류:', error);
+        setStatus('인증에 실패했습니다. 홈으로 이동합니다...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      }
+    };
+
+    processCallback();
   }, [handleCallback]);
 
   return (
@@ -57,7 +76,7 @@ const Callback = () => {
       <CallbackContainer>
         <LoadingCard>
           <Spinner />
-          <p>인증을 완료하는 중...</p>
+          <p>{status}</p>
         </LoadingCard>
       </CallbackContainer>
     </Layout>

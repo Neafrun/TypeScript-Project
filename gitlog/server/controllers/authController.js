@@ -21,9 +21,14 @@ const handleCallback = async (req, res) => {
   try {
     const { code, state } = req.body;
     
-    // state 매개변수 검증
-    if (state !== req.session.state) {
+    // state 매개변수 검증 (개발 환경에서는 더 유연하게)
+    if (process.env.NODE_ENV === 'production' && state !== req.session.state) {
       return res.status(400).json({ error: '잘못된 state 매개변수입니다' });
+    }
+    
+    // 개발 환경에서는 state가 없어도 허용
+    if (!code) {
+      return res.status(400).json({ error: '인증 코드가 제공되지 않았습니다' });
     }
     
     // 코드를 액세스 토큰으로 교환
@@ -63,15 +68,7 @@ const handleCallback = async (req, res) => {
       { expiresIn: '7d' }
     );
     
-    // 쿠키 설정 (개발환경에서는 localhost 전역에 설정하여 3000/5000 모두 접근 가능하도록)
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-    });
-    
+    // JWT 토큰을 응답에 포함 (쿠키 대신 localStorage 사용)
     res.json({
       id: user.id,
       login: user.login,
@@ -79,6 +76,7 @@ const handleCallback = async (req, res) => {
       email: user.email,
       avatar_url: user.avatar_url,
       html_url: user.html_url,
+      token: token, // JWT 토큰을 응답에 포함
     });
     
   } catch (error) {
@@ -90,7 +88,9 @@ const handleCallback = async (req, res) => {
 // 현재 사용자 가져오기
 const getCurrentUser = async (req, res) => {
   try {
-    const token = req.cookies.token;
+    // Authorization 헤더에서 토큰 가져오기
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
     
     if (!token) {
       return res.status(401).json({ error: '토큰이 제공되지 않았습니다' });

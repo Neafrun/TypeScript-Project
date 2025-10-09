@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const HeaderContainer = styled.header`
@@ -88,7 +89,9 @@ const Separator = styled.div`
 `;
 
 const Header = () => {
-  const { user, login, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   return (
     <>
       <HeaderContainer>
@@ -100,13 +103,25 @@ const Header = () => {
           <Nav>
             <NavLink href="/">홈</NavLink>
             <NavLink href="/dashboard">대시보드</NavLink>
-            {user ? (
+            {loading ? (
+              <StartButton href="#" style={{ opacity: 0.7, cursor: 'not-allowed' }}>
+                로딩 중...
+              </StartButton>
+            ) : user ? (
               <>
                 {user.avatar_url && <Avatar src={user.avatar_url} alt={user.login} />}
                 <StartButton href="#" onClick={(e) => { e.preventDefault(); logout(); }}>로그아웃</StartButton>
               </>
             ) : (
-              <StartButton href="#" onClick={(e) => { e.preventDefault(); login(); }}>로그인</StartButton>
+              <StartButton 
+                href="#" 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  navigate('/login');
+                }}
+              >
+                로그인
+              </StartButton>
             )}
           </Nav>
         </HeaderContent>

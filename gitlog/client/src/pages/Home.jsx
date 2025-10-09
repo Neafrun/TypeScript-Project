@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { useAuth } from '../context/AuthContext';
 
 const HomeContainer = styled.div`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
@@ -80,6 +82,19 @@ const ArrowIcon = styled.span`
 `;
 
 const Home = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleStartClick = () => {
+    if (user) {
+      // 로그인된 사용자는 대시보드로
+      navigate('/dashboard');
+    } else {
+      // 로그인되지 않은 사용자는 로그인 페이지로
+      navigate('/login');
+    }
+  };
+
   return (
     <Layout>
       <HomeContainer>
@@ -91,7 +106,9 @@ const Home = () => {
             <Subtitle>
               Effortlessly track changes, collaborate with your team, and celebrate every milestone.
             </Subtitle>
-            {/* 헤더에서 로그인/대시보드 내비게이션을 제공하므로 홈 CTA 제거 */}
+            <StartButton onClick={handleStartClick}>
+              {user ? '대시보드로 이동' : '시작하기'} <ArrowIcon>→</ArrowIcon>
+            </StartButton>
           </LeftContent>
           <RightContent>
             <LogoImage src="/gitlog.png" alt="GitLog Logo" />
