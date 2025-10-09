@@ -1,70 +1,248 @@
-# Getting Started with Create React App
+# GitLog
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+GitHub 저장소 분석을 위한 강력한 도구입니다.
 
-## Available Scripts
+## 기능
 
-In the project directory, you can run:
+- 🔐 GitHub OAuth 인증
+- 📊 저장소 분석 및 통계
+- 📈 커밋 히스토리 시각화
+- 🌿 브랜치 분석
+- 👥 기여자 인사이트
+- 🎨 모던하고 반응형 UI
 
-### `npm start`
+## 프로젝트 구조
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+gitlog/
+├── client/                 # React 프론트엔드
+│   ├── public/
+│   ├── src/
+│   │   ├── components/     # 재사용 가능한 UI 컴포넌트
+│   │   ├── pages/         # 페이지 컴포넌트
+│   │   ├── styles/        # 스타일드 컴포넌트 및 테마
+│   │   ├── context/       # React 컨텍스트 프로바이더
+│   │   ├── App.jsx        # 메인 앱 컴포넌트
+│   │   └── index.js       # 진입점
+│   ├── .env               # 클라이언트 환경 변수
+│   ├── .gitignore
+│   └── package.json
+│
+├── server/                # Express.js 백엔드
+│   ├── controllers/       # 라우트 컨트롤러
+│   ├── routes/           # API 라우트
+│   ├── config/           # 설정 파일
+│   ├── middleware/       # 커스텀 미들웨어
+│   ├── .env              # 서버 환경 변수
+│   ├── .gitignore
+│   ├── server.js         # 메인 서버 파일
+│   └── package.json
+│
+└── README.md
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 시작하기
 
-### `npm test`
+### 사전 요구사항
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js (v14 이상)
+- npm 또는 yarn
+- GitHub OAuth 앱
 
-### `npm run build`
+### GitHub OAuth 설정
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. GitHub 설정 > 개발자 설정 > OAuth 앱으로 이동
+2. 새 OAuth 앱 생성:
+   - 애플리케이션 이름: GitLog
+   - 홈페이지 URL: `http://localhost:3000`
+   - 인증 콜백 URL: `http://localhost:3000/callback`
+3. 클라이언트 ID와 클라이언트 시크릿 복사
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 설치
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. 저장소 클론:
+```bash
+git clone <repository-url>
+cd gitlog
+```
 
-### `npm run eject`
+2. 서버 의존성 설치:
+```bash
+cd server
+npm install
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+3. 클라이언트 의존성 설치:
+```bash
+cd ../client
+npm install
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+4. 환경 변수 설정:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**서버 (.env):**
+```env
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:3000
+SESSION_SECRET=your-session-secret-key-here
+JWT_SECRET=your-jwt-secret-key-here
+GITHUB_CLIENT_ID=your_github_client_id_here
+GITHUB_CLIENT_SECRET=your_github_client_secret_here
+GITHUB_REDIRECT_URI=http://localhost:3000/callback
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+**클라이언트 (.env):**
+```env
+REACT_APP_API_URL=http://localhost:5000
+REACT_APP_GITHUB_CLIENT_ID=your_github_client_id_here
+```
 
-## Learn More
+### 애플리케이션 실행
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. 서버 시작:
+```bash
+cd server
+npm run dev
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. 클라이언트 시작 (새 터미널):
+```bash
+cd client
+npm start
+```
 
-### Code Splitting
+3. 브라우저에서 `http://localhost:3000`으로 이동
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 실행 가이드 (요약)
 
-### Analyzing the Bundle Size
+백엔드만 실행:
+```powershell
+cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\server
+npm install
+npm run dev
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+프론트만 실행:
+```powershell
+cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\client
+npm install
+npm start
+```
 
-### Making a Progressive Web App
+프론트+백엔드 동시에 실행:
+- 터미널 2개로 각각 실행
+  - 터미널 A (백엔드):
+    ```powershell
+    cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\server
+    npm run dev
+    ```
+  - 터미널 B (프론트):
+    ```powershell
+    cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog\client
+    npm start
+    ```
+- 또는 한 터미널에서 동시 실행 (concurrently 사용):
+  ```powershell
+  cd C:\Users\home\Desktop\project1\TypeScript-Project\gitlog
+  npx concurrently "npm run dev --prefix server" "npm start --prefix client"
+  ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+필수 체크리스트:
+- 서버 `.env`의 `CLIENT_URL`은 `http://localhost:3000`
+- 클라이언트 `.env`의 `REACT_APP_API_URL`은 `http://localhost:5000`
+- GitHub OAuth Redirect URL: `http://localhost:3000/callback`
 
-### Advanced Configuration
+## API 엔드포인트
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### 인증
+- `GET /api/auth/github` - GitHub OAuth 시작
+- `POST /api/auth/callback` - OAuth 콜백 처리
+- `GET /api/auth/me` - 현재 사용자 가져오기
+- `POST /api/auth/logout` - 사용자 로그아웃
 
-### Deployment
+### 헬스 체크
+- `GET /api/health` - 서버 상태 확인
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### GitHub 데이터
+- `GET /api/github/repos` - 로그인 사용자의 저장소 목록 (쿠키 필요)
+- `GET /api/github/repos/:owner/:repo/stats` - 저장소 통계 (쿠키 필요)
+- `GET /api/github/repos/:owner/:repo/commits` - 저장소 커밋 (쿠키 필요)
 
-### `npm run build` fails to minify
+### 디버그
+- `GET /api/debug/ping` - 단순 핑 확인
+- `GET /api/debug/headers` - 요청 헤더 확인
+- `GET /api/debug/session` - 세션 확인
+- `GET /api/debug/jwt` - JWT 디코딩 결과 확인 (쿠키 필요)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 사용된 기술
+
+### 프론트엔드
+- React 18
+- React Router DOM
+- Styled Components
+- Context API
+
+### 백엔드
+- Node.js
+- Express.js
+- Axios
+- JWT
+- Express Session
+- CORS
+
+## 개발
+
+### 사용 가능한 스크립트
+
+**클라이언트:**
+- `npm start` - 개발 서버 시작
+- `npm build` - 프로덕션용 빌드
+- `npm test` - 테스트 실행
+
+**서버:**
+- `npm start` - 프로덕션 서버 시작
+- `npm run dev` - nodemon으로 개발 서버 시작
+
+### 문제 원인 빠르게 파악하기 (프론트/백엔드 구분)
+
+1) 백엔드 헬스 확인: `GET /api/health` 응답 200이면 서버 OK
+
+2) 세션/쿠키 확인:
+- `GET /api/debug/session`로 세션 OK 확인
+- 로그인 후 `GET /api/debug/jwt`로 JWT 파싱 결과 확인 (쿠키 포함 요청 필요)
+
+3) GitHub API 경로 독립 테스트:
+- Postman으로 `GET /api/github/repos` 호출 → 200이면 백엔드/토큰 OK, 프론트 이슈 가능
+- 401/403이면 인증/토큰 이슈 (백엔드/설정 문제)
+
+4) 요청 추적: 모든 응답 헤더의 `X-Request-Id`를 확인해 서버 로그와 매칭
+
+### Postman 사용법
+
+1. Postman 설치 후, 아래 파일 임포트:
+- `server/GitLog.postman_collection.json`
+- `server/GitLog.postman_environment.json`
+
+2. 환경 선택: 상단 우측에서 `GitLog Local` 선택
+
+3. 순서:
+- `Auth - GitHub Start`로 state 발급 → 브라우저 OAuth 진행 후 code/state 확보
+- `Auth - Callback`에 code/state 입력하고 실행 → `token` 쿠키 설정됨
+- `Auth - Me` 또는 `GitHub` 폴더의 요청들 실행 (쿠키 필요)
+
+4. 쿠키 전송: Postman에서 Cookie 탭으로 `localhost` 도메인 쿠키 `token` 확인
+
+5. 에러시: 응답의 `X-Request-Id`를 서버 로그와 매칭해 원인 추적
+
+## 기여하기
+
+1. 저장소 포크
+2. 기능 브랜치 생성
+3. 변경사항 적용
+4. 테스트 추가 (해당하는 경우)
+5. 풀 리퀘스트 제출
+
+## 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 있습니다.
