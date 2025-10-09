@@ -328,8 +328,23 @@ router.post('/analyze', async (req, res) => {
     
     res.json(analysis);
   } catch (error) {
-    console.error('분석 실패:', error.message, error.stack);
-    res.status(500).json({ error: '분석을 수행할 수 없습니다', details: error.message });
+    console.error('분석 실패:', error.message);
+    console.error('스택 트레이스:', error.stack);
+    console.error('요청 데이터:', { owner, repo, commitsCount: commits?.length, contributorsCount: contributors?.length });
+    
+    // 더 상세한 에러 정보 제공
+    const errorDetails = {
+      message: error.message,
+      type: error.constructor.name,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    };
+    
+    res.status(500).json({ 
+      error: '분석을 수행할 수 없습니다', 
+      details: error.message,
+      debug: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+    });
   }
 });
 

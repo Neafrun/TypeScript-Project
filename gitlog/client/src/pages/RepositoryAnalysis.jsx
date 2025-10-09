@@ -500,7 +500,19 @@ const RepositoryAnalysis = () => {
       });
 
       if (!analysisResponse.ok) {
-        throw new Error('분석을 수행할 수 없습니다.');
+        const errorData = await analysisResponse.json();
+        console.error('분석 API 에러:', errorData);
+        
+        let errorMessage = errorData.error || '분석을 수행할 수 없습니다';
+        if (errorData.details) {
+          errorMessage += `\n\n상세 정보: ${errorData.details}`;
+        }
+        if (errorData.debug) {
+          console.error('디버그 정보:', errorData.debug);
+          errorMessage += `\n\n에러 타입: ${errorData.debug.type}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const analysisData = await analysisResponse.json();

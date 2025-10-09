@@ -21,8 +21,8 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' })); // JSON 페이로드 크기 제한 증가
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // URL 인코딩 페이로드 크기 제한 증가
 app.use(cookieParser());
 app.use(requestId);
 app.use(requestLogger);
