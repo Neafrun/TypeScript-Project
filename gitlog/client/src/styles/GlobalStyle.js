@@ -8,7 +8,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    font-family: 'NanumGothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -16,6 +16,35 @@ const GlobalStyle = createGlobalStyle`
     background-color: #f6f8fa;
     color: #24292e;
     line-height: 1.5;
+  }
+
+  /* 한국어 폰트 로딩 */
+  @font-face {
+    font-family: 'NanumGothic';
+    src: url('/NanumGothic.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'NanumGothic';
+    src: url('/NanumGothicBold.otf') format('opentype');
+    font-weight: bold;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'NanumGothic';
+    src: url('/NanumGothicExtraBold.otf') format('opentype');
+    font-weight: 800;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'NanumGothic';
+    src: url('/NanumGothicLight.otf') format('opentype');
+    font-weight: 300;
+    font-style: normal;
   }
 
   code {

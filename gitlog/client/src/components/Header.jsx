@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
+import LanguageToggle from './LanguageToggle';
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
@@ -93,6 +95,14 @@ const ProfileSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+`;
+
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  justify-content: flex-end;
 `;
 
 const Avatar = styled.img`
@@ -188,6 +198,7 @@ const Separator = styled.div`
 const Header = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -214,12 +225,12 @@ const Header = () => {
             <a href="/"><Logo>GitLog</Logo></a>
           </LogoSection>
           <Nav>
-            {user && <NavLink href="/dashboard">Dashboard</NavLink>}
-            <NavLink href="/repository-analysis">Repository Analysis</NavLink>
-            {user && <NavLink href="/ai-analysis">AI Analysis</NavLink>}
+            {user && <NavLink href="/dashboard">{t('navigation.dashboard')}</NavLink>}
+            <NavLink href="/repository-analysis">{t('navigation.analysis')}</NavLink>
+            {user && <NavLink href="/ai-analysis">{t('navigation.aiAnalysis')}</NavLink>}
             {loading ? (
               <StartButton href="#" style={{ opacity: 0.7, cursor: 'not-allowed' }}>
-                Loading...
+                {t('common.loading')}
               </StartButton>
             ) : user ? (
               <ProfileSection ref={dropdownRef}>
@@ -240,16 +251,16 @@ const Header = () => {
                       </UserGitHub>
                     </DropdownHeader>
                     <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
-                      Dashboard
+                      {t('navigation.dashboard')}
                     </DropdownItem>
                     <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/repository-analysis'); }}>
-                      Repository Analysis
+                      {t('navigation.analysis')}
                     </DropdownItem>
                     <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/ai-analysis'); }}>
-                      AI Analysis
+                      {t('navigation.aiAnalysis')}
                     </DropdownItem>
                     <DropdownItem href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
-                      Logout
+                      {t('navigation.logout')}
                     </DropdownItem>
                   </DropdownMenu>
                 )}
@@ -262,10 +273,13 @@ const Header = () => {
                   navigate('/login');
                 }}
               >
-                Login
+                {t('navigation.login')}
               </StartButton>
             )}
           </Nav>
+          <RightSection>
+            <LanguageToggle />
+          </RightSection>
         </HeaderContent>
       </HeaderContainer>
       <Separator />

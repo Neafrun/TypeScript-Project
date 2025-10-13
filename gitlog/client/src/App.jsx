@@ -4,6 +4,8 @@ import styled, { ThemeProvider } from 'styled-components';
 import GlobalStyle from './styles/GlobalStyle';
 import theme from './styles/theme';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
+import { useTranslation } from './hooks/useTranslation';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadingSpinner';
 import Home from './pages/Home';
@@ -14,7 +16,6 @@ import AIAnalysis from './pages/AIAnalysis';
 import RepositoryAnalysis from './pages/RepositoryAnalysis';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
-import Contact from './pages/Contact';
 
 // API 경로 리다이렉트 컴포넌트
 const APIRedirect = () => {
@@ -40,9 +41,10 @@ const AppContainer = styled.div`
 // 메인 앱 컴포넌트 (AuthContext 사용)
 const AppContent = () => {
   const { loading } = useAuth();
+  const { t } = useTranslation();
 
   if (loading) {
-    return <LoadingSpinner text="인증 상태를 확인하는 중..." />;
+    return <LoadingSpinner text={t('common.loading')} />;
   }
 
   return (
@@ -57,7 +59,6 @@ const AppContent = () => {
           <Route path="/repository-analysis" element={<RepositoryAnalysis />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/contact" element={<Contact />} />
           {/* API 경로는 백엔드로 리다이렉트 */}
           <Route path="/api/*" element={<APIRedirect />} />
         </Routes>
@@ -70,9 +71,11 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

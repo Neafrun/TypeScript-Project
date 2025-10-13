@@ -1,5 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -30,11 +31,13 @@ const LoadingText = styled.p`
   margin: 0;
 `;
 
-const LoadingSpinner = ({ text = "로딩 중..." }) => {
+const LoadingSpinner = ({ text }) => {
+  const { t } = useTranslation();
+  
   return (
     <SpinnerContainer>
       <Spinner />
-      <LoadingText>{text}</LoadingText>
+      <LoadingText>{text || t('common.loading')}</LoadingText>
     </SpinnerContainer>
   );
 };

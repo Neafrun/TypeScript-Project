@@ -12,6 +12,7 @@ import ReleasesAnalysis from '../components/ReleasesAnalysis';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiGet, apiPost } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 const AnalysisContainer = styled.div`
   min-height: calc(100vh - 200px);
@@ -418,6 +419,7 @@ const ActivityDescription = styled.p`
 const RepositoryAnalysis = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [repositoryUrl, setRepositoryUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
@@ -605,13 +607,13 @@ const RepositoryAnalysis = () => {
 
   const handleAnalyze = async () => {
     if (!repositoryUrl.trim()) {
-      setError('Please enter a repository URL.');
+      setError(t('analysis.enterRepositoryUrl'));
       return;
     }
 
     const repoInfo = parseRepositoryUrl(repositoryUrl);
     if (!repoInfo) {
-      setError('Please enter a valid GitHub repository URL. (e.g., https://github.com/owner/repo or owner/repo)');
+      setError(`${t('analysis.invalidUrl')}: ${t('analysis.invalidUrlMessage')}`);
       return;
     }
 
@@ -760,28 +762,39 @@ const RepositoryAnalysis = () => {
             err.message.includes('API rate limit exceeded')) {
           // API rate limit 에러는 실제로는 private repository 접근 거부
           if (!user || !user.login) {
-            errorMessage = '🔒 Private Repository Access Denied\n\nThis repository is private and requires GitHub authentication to analyze.\n\nPlease log in with your GitHub account to access private repositories and unlock advanced analysis features.';
+            errorMessage = t('analysis.privateRepositoryAccessDenied');
           } else {
-            errorMessage = 'Access denied. This repository is private. You may not have permission to access this repository.';
+            errorMessage = `${t('analysis.accessDenied')}. ${t('analysis.accessDeniedMessage')}`;
           }
         } else if (errorData?.message) {
           errorMessage = errorData.message;
         } else {
           if (!user || !user.login) {
-            errorMessage = '🔒 Private Repository Access Denied\n\nThis repository is private and requires GitHub authentication to analyze.\n\nPlease log in with your GitHub account to access private repositories and unlock advanced analysis features.';
+            errorMessage = t('analysis.privateRepositoryAccessDenied');
           } else {
-            errorMessage = 'Access denied. This repository is private. You may not have permission to access this repository.';
+            errorMessage = `${t('analysis.accessDenied')}. ${t('analysis.accessDeniedMessage')}`;
           }
         }
       } else if (err.response?.status === 404) {
-        const errorData = err.response?.data;
-        if (errorData?.message) {
-          errorMessage = errorData.message;
-        } else {
-          errorMessage = 'Repository not found. Please check the repository URL and try again.';
-        }
+        errorMessage = `${t('analysis.repositoryNotFound')}: ${t('analysis.repositoryNotFoundMessage')}`;
       } else if (err.response?.status === 401) {
-        errorMessage = 'Authentication required. Please log in to access this repository.';
+        errorMessage = `${t('analysis.authenticationRequired')}: ${t('analysis.authenticationRequiredMessage')}`;
+      } else {
+        // 더 구체적인 오류 정보 제공
+        const statusCode = err.response?.status;
+        
+        if (err.code === 'NETWORK_ERROR' || err.message?.includes('Network Error')) {
+          errorMessage = `${t('analysis.networkError')}: ${t('analysis.networkErrorMessage')}`;
+        } else if (err.code === 'TIMEOUT' || err.message?.includes('timeout')) {
+          errorMessage = `${t('analysis.timeoutError')}: ${t('analysis.timeoutErrorMessage')}`;
+        } else if (statusCode >= 500) {
+          errorMessage = `${t('analysis.serverError')}: ${t('analysis.serverErrorMessage')}`;
+        } else if (err.message?.includes('Invalid URL') || err.message?.includes('URL')) {
+          errorMessage = `${t('analysis.invalidUrl')}: ${t('analysis.invalidUrlMessage')}`;
+        } else {
+          const errorDetails = err.response?.data?.message || err.message || 'Unknown error';
+          errorMessage = `${t('analysis.analysisError')} (${statusCode || 'Unknown'}): ${errorDetails}. ${t('analysis.tryAgain')}`;
+        }
       }
       
       setError(errorMessage);
@@ -807,14 +820,14 @@ const RepositoryAnalysis = () => {
     <Layout>
       <AnalysisContainer>
         <MainContent>
-          <Title>Repository Analysis</Title>
-          <Subtitle>Comprehensive analysis of GitHub repository code quality, branch structure, and contribution patterns</Subtitle>
+          <Title>{t('analysis.title')}</Title>
+          <Subtitle>{t('analysis.selectRepository')}</Subtitle>
           
           <InputCard>
             <InputGroup>
               <Input
                 type="text"
-                placeholder="Enter GitHub repository URL (e.g., https://github.com/facebook/react)"
+                placeholder={t('analysis.enterRepositoryUrl')}
                 value={repositoryUrl}
                 onChange={(e) => setRepositoryUrl(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -823,7 +836,7 @@ const RepositoryAnalysis = () => {
                 onClick={handleAnalyze} 
                 disabled={loading}
               >
-                {loading ? 'Analyzing...' : 'Analyze'}
+                {loading ? t('analysis.analyzing') : t('analysis.analyze')}
               </AnalyzeButton>
             </InputGroup>
             {!user && (
@@ -838,7 +851,7 @@ const RepositoryAnalysis = () => {
                 textAlign: 'center',
                 fontWeight: '500'
               }}>
-                💡 <strong>Login Tip:</strong> Log in to analyze your private repositories and get enhanced features!
+                {t('login.tip')}
               </div>
             )}
           </InputCard>
@@ -865,7 +878,7 @@ const RepositoryAnalysis = () => {
             <>
               {/* 코드 품질 차트 */}
               <ChartContainer>
-                <ChartTitle>Code Quality Score</ChartTitle>
+                <ChartTitle>{t('analysis.codeQualityScore')}</ChartTitle>
                 <ChartSubtitle>Contributor-wise code quality assessment</ChartSubtitle>
                 <ResponsiveContainer width="100%" height={400}>
                   <BarChart
@@ -1017,7 +1030,7 @@ const RepositoryAnalysis = () => {
               <ResultsCard>
                 <SectionTitle>Analysis Results: {analysis.repository.full_name}</SectionTitle>
               
-              <SectionTitle>Branch Analysis</SectionTitle>
+              <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
               <div style={{ 
                 background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
                 borderRadius: '16px', 
@@ -1026,7 +1039,7 @@ const RepositoryAnalysis = () => {
                 border: '1px solid #dee2e6',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}>
-                <h4 style={{ margin: '0 0 1.5rem 0', color: '#2c3e50', fontSize: '1.3rem', fontWeight: '600' }}>Advanced Code Quality Assessment Criteria</h4>
+                <h4 style={{ margin: '0 0 1.5rem 0', color: '#2c3e50', fontSize: '1.3rem', fontWeight: '600' }}>{t('analysis.advancedCodeQualityAssessment')}</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', fontSize: '0.95rem' }}>
                   <div style={{ 
                     background: 'linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%)',
@@ -1034,9 +1047,9 @@ const RepositoryAnalysis = () => {
                     borderRadius: '12px',
                     border: '1px solid #4CAF50'
                   }}>
-                    <strong style={{ color: '#4CAF50', fontSize: '1.1rem' }}>1. Commit Quality (30 points)</strong>
+                    <strong style={{ color: '#4CAF50', fontSize: '1.1rem' }}>1. {t('analysis.commitQuality')} ({t('analysis.commitQualityPoints')})</strong>
                     <p style={{ margin: '0.8rem 0', color: '#2e7d32', lineHeight: '1.5' }}>
-                      Optimal commit count (15-80) with consistent patterns. Evaluates commit size and frequency for maintainability.
+                      {t('analysis.commitQualityDescription')}
                     </p>
                   </div>
                   <div style={{ 
@@ -1045,9 +1058,9 @@ const RepositoryAnalysis = () => {
                     borderRadius: '12px',
                     border: '1px solid #2196F3'
                   }}>
-                    <strong style={{ color: '#2196F3', fontSize: '1.1rem' }}>2. Code Maintainability (25 points)</strong>
+                    <strong style={{ color: '#2196F3', fontSize: '1.1rem' }}>2. {t('analysis.codeMaintainability')} ({t('analysis.codeMaintainabilityPoints')})</strong>
                     <p style={{ margin: '0.8rem 0', color: '#1565c0', lineHeight: '1.5' }}>
-                      Balanced addition/deletion ratio (15-35% deletions) indicates healthy refactoring and code improvement practices.
+                      {t('analysis.codeMaintainabilityDescription')}
                     </p>
                   </div>
                   <div style={{ 
@@ -1056,9 +1069,9 @@ const RepositoryAnalysis = () => {
                     borderRadius: '12px',
                     border: '1px solid #FF9800'
                   }}>
-                    <strong style={{ color: '#FF9800', fontSize: '1.1rem' }}>3. Collaboration Pattern (25 points)</strong>
+                    <strong style={{ color: '#FF9800', fontSize: '1.1rem' }}>3. {t('analysis.collaborationPattern')} ({t('analysis.collaborationPatternPoints')})</strong>
                     <p style={{ margin: '0.8rem 0', color: '#e65100', lineHeight: '1.5' }}>
-                      Team-appropriate contribution rates. Larger teams favor lower individual contributions for better knowledge distribution.
+                      {t('analysis.collaborationPatternDescription')}
                     </p>
                   </div>
                   <div style={{ 
@@ -1067,9 +1080,9 @@ const RepositoryAnalysis = () => {
                     borderRadius: '12px',
                     border: '1px solid #FF5722'
                   }}>
-                    <strong style={{ color: '#FF5722', fontSize: '1.1rem' }}>4. Development Consistency (20 points)</strong>
+                    <strong style={{ color: '#FF5722', fontSize: '1.1rem' }}>4. {t('analysis.developmentConsistency')} ({t('analysis.developmentConsistencyPoints')})</strong>
                     <p style={{ margin: '0.8rem 0', color: '#c62828', lineHeight: '1.5' }}>
-                      Consistent activity patterns (40-80% active weeks) with stable development rhythm over time.
+                      {t('analysis.developmentConsistencyDescription')}
                     </p>
                   </div>
                 </div>
@@ -1093,25 +1106,25 @@ const RepositoryAnalysis = () => {
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1976d2' }}>
                           {analysis.branchStats.length}
                         </div>
-                        <div style={{ color: '#424242' }}>Total Branches</div>
+                        <div style={{ color: '#424242' }}>{t('analysis.totalBranches')}</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#388e3c' }}>
                           {analysis.branchStats.filter(b => b.branchProtected).length}
                         </div>
-                        <div style={{ color: '#424242' }}>Protected Branches</div>
+                        <div style={{ color: '#424242' }}>{t('analysis.protectedBranches')}</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f57c00' }}>
                           {Math.max(...analysis.branchStats.map(b => b.commitCount))}
                         </div>
-                        <div style={{ color: '#424242' }}>Max Commits</div>
+                        <div style={{ color: '#424242' }}>{t('analysis.maxCommits')}</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#7b1fa2' }}>
                           {Math.round(analysis.branchStats.reduce((sum, b) => sum + b.commitCount, 0) / analysis.branchStats.length)}
                         </div>
-                        <div style={{ color: '#424242' }}>Average Commits</div>
+                        <div style={{ color: '#424242' }}>{t('analysis.averageCommits')}</div>
                       </div>
                     </div>
                   </div>
@@ -1221,7 +1234,7 @@ const RepositoryAnalysis = () => {
                                 alignItems: 'center',
                                 marginBottom: '0.5rem'
                               }}>
-                                <span style={{ fontSize: '0.9rem', color: '#666' }}>Quality Score</span>
+                                <span style={{ fontSize: '0.9rem', color: '#666' }}>{t('analysis.qualityScore')}</span>
                                 <span style={{ 
                                   fontSize: '1.2rem', 
                                   fontWeight: 'bold',
@@ -1269,14 +1282,14 @@ const RepositoryAnalysis = () => {
                                 <div style={{ fontWeight: '600', color: '#2c3e50' }}>
                                   {branch.commitCount}
                                 </div>
-                                <div style={{ color: '#666' }}>Commits</div>
+                                <div style={{ color: '#666' }}>{t('analysis.commits')}</div>
                               </div>
                               <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontWeight: '600', color: '#2c3e50' }}>
-                                  {branch.branchProtected ? 'Protected' : 'Open'}
+                                  {branch.branchProtected ? t('analysis.protected') : t('analysis.open')}
                                 </div>
                                 <div style={{ color: '#666' }}>
-                                  {branch.branchProtected ? 'Protected' : 'Normal'}
+                                  {branch.branchProtected ? t('analysis.protected') : t('analysis.open')}
                                 </div>
                               </div>
                             </div>
@@ -1289,25 +1302,25 @@ const RepositoryAnalysis = () => {
               ) : (
                 <MetricGrid>
                   <MetricCard color={(analysis.codeQuality?.score || 0) >= 80 ? '#28a745' : (analysis.codeQuality?.score || 0) >= 60 ? '#ffc107' : '#dc3545'}>
-                    <MetricTitle>Overall Quality Score</MetricTitle>
+                    <MetricTitle>{t('analysis.overallQualityScore')}</MetricTitle>
                     <MetricValue>{analysis.codeQuality?.score || 0}/100</MetricValue>
                   </MetricCard>
                   <MetricCard>
-                    <MetricTitle>Quality Level</MetricTitle>
+                    <MetricTitle>{t('analysis.qualityLevel')}</MetricTitle>
                     <MetricValue>{analysis.codeQuality?.level || '분석 중...'}</MetricValue>
                   </MetricCard>
                   <MetricCard>
-                    <MetricTitle>Total Commits</MetricTitle>
+                    <MetricTitle>{t('analysis.totalCommits')}</MetricTitle>
                     <MetricValue>{analysis.codeQuality?.metrics?.totalCommits || 0}</MetricValue>
                   </MetricCard>
                   <MetricCard>
-                    <MetricTitle>Contributors</MetricTitle>
+                    <MetricTitle>{t('analysis.contributors')}</MetricTitle>
                     <MetricValue>{analysis.codeQuality?.metrics?.contributorsCount || 0}</MetricValue>
                   </MetricCard>
                 </MetricGrid>
               )}
 
-              <SectionTitle>Contributor Rankings</SectionTitle>
+              <SectionTitle>{t('analysis.contributorRankings')}</SectionTitle>
               <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
                 Overall contributor rankings based on contributions across all branches.
               </p>
@@ -1461,7 +1474,7 @@ const RepositoryAnalysis = () => {
                        </>
                      )}
 
-                     <SectionTitle>Branch Analysis</SectionTitle>
+                     <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
                      {analysis.branchStats && analysis.branchStats.length > 0 && (
                        <>
                          <div style={{
@@ -1471,7 +1484,7 @@ const RepositoryAnalysis = () => {
                            marginBottom: '1.5rem',
                            border: '1px solid #90caf9'
                          }}>
-                           <h4 style={{ margin: '0 0 0.5rem 0', color: '#1565c0' }}>Branch Commit Statistics</h4>
+                           <h4 style={{ margin: '0 0 0.5rem 0', color: '#1565c0' }}>{t('analysis.branchCommitStatistics')}</h4>
                            <p style={{ margin: '0', fontSize: '0.9rem', color: '#1976d2' }}>
                              Analyzed <strong>{analysis.totalCommitsAcrossBranches || 0} commits</strong> across
                              <strong> {analysis.branchStats.length} branches</strong>.
@@ -1513,24 +1526,24 @@ const RepositoryAnalysis = () => {
                 </>
               )}
 
-              <SectionTitle>Activity Level</SectionTitle>
+              <SectionTitle>{t('analysis.activityLevel')}</SectionTitle>
               <p>{analysis.activityLevel?.description || '분석 중...'}</p>
               <MetricGrid>
                 <MetricCard>
-                  <MetricTitle>Activity Level</MetricTitle>
+                  <MetricTitle>{t('analysis.activityLevel')}</MetricTitle>
                   <MetricValue>{analysis.activityLevel?.level || '분석 중...'}</MetricValue>
                 </MetricCard>
                 <MetricCard>
-                  <MetricTitle>Recent Commits</MetricTitle>
+                  <MetricTitle>{t('analysis.recentCommits')}</MetricTitle>
                   <MetricValue>{analysis.activityLevel?.metrics?.recentCommits || 0}</MetricValue>
                 </MetricCard>
                 <MetricCard>
-                  <MetricTitle>Last Commit</MetricTitle>
+                  <MetricTitle>{t('analysis.lastCommit')}</MetricTitle>
                   <MetricValue>{analysis.activityLevel?.metrics?.lastCommitDate ? new Date(analysis.activityLevel.metrics.lastCommitDate).toLocaleDateString() : 'N/A'}</MetricValue>
                 </MetricCard>
               </MetricGrid>
 
-              <SectionTitle>Recommendations</SectionTitle>
+              <SectionTitle>{t('analysis.recommendations')}</SectionTitle>
               <RecommendationList>
                 {analysis.recommendations?.map((rec, index) => (
                   <RecommendationItem key={index} priority={rec.priority}>
@@ -1539,7 +1552,7 @@ const RepositoryAnalysis = () => {
                   </RecommendationItem>
                 )) || (
                   <RecommendationItem priority="low">
-                    <PriorityBadge priority="low">정보</PriorityBadge>
+                    <PriorityBadge priority="low">{t('analysis.information')}</PriorityBadge>
                     <strong>분석 완료:</strong> 현재 분석 데이터를 기반으로 추천사항을 준비 중입니다.
                   </RecommendationItem>
                 )}
@@ -1632,7 +1645,7 @@ const RepositoryAnalysis = () => {
         <ModalOverlay onClick={() => setShowBranchModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
-              <ModalTitle>Branch Activity: {selectedBranch.branch}</ModalTitle>
+              <ModalTitle>{t('analysis.branchDetails')}: {selectedBranch.branch}</ModalTitle>
               <CloseButton onClick={() => setShowBranchModal(false)}>
                 ×
               </CloseButton>
@@ -1641,39 +1654,39 @@ const RepositoryAnalysis = () => {
             <BranchActivityGrid>
               <ActivityCard level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
                 <ActivityTitle level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
-                  Commit Count
+                  {t('analysis.commitCount')}
                 </ActivityTitle>
                 <ActivityValue level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
                   {selectedBranch.commitCount}
                 </ActivityValue>
                 <ActivityDescription>
-                  Total commits in this branch
+                  {t('analysis.totalCommits')} in this branch
                 </ActivityDescription>
               </ActivityCard>
 
               <ActivityCard level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
                 <ActivityTitle level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
-                  Protection Status
+                  {t('analysis.isProtected')}
                 </ActivityTitle>
                 <ActivityValue level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
-                  {selectedBranch.branchProtected ? 'Protected' : 'Open'}
+                  {selectedBranch.branchProtected ? t('analysis.protected') : t('analysis.open')}
                 </ActivityValue>
                 <ActivityDescription>
-                  {selectedBranch.branchProtected ? 'Branch is protected with rules' : 'Branch has no protection rules'}
+                  {selectedBranch.branchProtected ? t('analysis.branchIsProtectedWithRules') : t('analysis.branchHasNoProtectionRules')}
                 </ActivityDescription>
               </ActivityCard>
 
               <ActivityCard level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
                 <ActivityTitle level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
-                  Branch Type
+                  {t('analysis.branchType')}
                 </ActivityTitle>
                 <ActivityValue level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
-                  {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Main' : 
-                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Develop' : 'Feature'}
+                  {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? t('analysis.main') : 
+                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? t('analysis.develop') : t('analysis.feature')}
                 </ActivityValue>
                 <ActivityDescription>
-                  {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Primary production branch' : 
-                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Development integration branch' : 'Feature or topic branch'}
+                  {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? t('analysis.primaryProductionBranch') : 
+                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? t('analysis.developmentIntegrationBranch') : t('analysis.featureOrTopicBranch')}
                 </ActivityDescription>
               </ActivityCard>
 

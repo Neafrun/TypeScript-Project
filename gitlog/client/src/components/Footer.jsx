@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 
 const FooterContainer = styled.footer`
   background-color: #f5f5f5;
@@ -73,6 +74,8 @@ const Copyright = styled.p`
 `;
 
 const Footer = () => {
+  const { t } = useTranslation();
+  
   return (
     <FooterContainer>
       <FooterContent>
@@ -84,9 +87,8 @@ const Footer = () => {
           <Copyright>© 2024 GitLog. All rights reserved.</Copyright>
         </FooterLeft>
         <FooterRight>
-          <FooterLink href="/privacy">개인정보처리방침</FooterLink>
-          <FooterLink href="/terms">이용약관</FooterLink>
-          <FooterLink href="/contact">문의하기</FooterLink>
+          <FooterLink href="/privacy">{t('navigation.privacy')}</FooterLink>
+          <FooterLink href="/terms">{t('navigation.terms')}</FooterLink>
         </FooterRight>
       </FooterContent>
     </FooterContainer>

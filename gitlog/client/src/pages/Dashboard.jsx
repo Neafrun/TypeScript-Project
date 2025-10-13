@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
 
 const DashboardContainer = styled.div`
@@ -234,6 +235,7 @@ const SortButton = styled.button`
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [repos, setRepos] = useState([]);
   const [filteredRepos, setFilteredRepos] = useState([]);
   const [loadingRepos, setLoadingRepos] = useState(true);
@@ -318,7 +320,7 @@ const Dashboard = () => {
       <Layout>
         <DashboardContainer>
           <MainContent>
-            <p>Please login to access the dashboard.</p>
+            <p>{t('dashboard.pleaseLogin')}</p>
           </MainContent>
         </DashboardContainer>
       </Layout>
@@ -330,7 +332,7 @@ const Dashboard = () => {
       <DashboardContainer>
         <MainContent>
           <WelcomeSection>
-            <Title>Dashboard</Title>
+            <Title>{t('dashboard.title')}</Title>
             <UserInfo>
               <Avatar src={user.avatar_url} alt={user.login} />
               <UserDetails>
@@ -341,83 +343,83 @@ const Dashboard = () => {
           </WelcomeSection>
 
           <RepositoriesSection>
-            <h2>Repository List</h2>
-            {loadingRepos && <p>Loading...</p>}
-            {error && <p style={{ color: '#d73a49' }}>Error: {error}</p>}
+            <h2>{t('dashboard.repositoryList')}</h2>
+            {loadingRepos && <p>{t('dashboard.loading')}</p>}
+            {error && <p style={{ color: '#d73a49' }}>{t('dashboard.error')}: {error}</p>}
             {!loadingRepos && !error && (
               <>
                 <FilterSection>
-                  <FilterLabel>Filter by visibility:</FilterLabel>
+                  <FilterLabel>{t('dashboard.filterByVisibility')}</FilterLabel>
                   <FilterButton 
                     active={visibilityFilter === 'all'} 
                     disabled={isProcessing}
                     onClick={() => handleFilterChange('all')}
                   >
-                    All
+                    {t('dashboard.all')}
                   </FilterButton>
                   <FilterButton 
                     active={visibilityFilter === 'public'} 
                     disabled={isProcessing}
                     onClick={() => handleFilterChange('public')}
                   >
-                    Public
+                    {t('dashboard.public')}
                   </FilterButton>
                   <FilterButton 
                     active={visibilityFilter === 'private'} 
                     disabled={isProcessing}
                     onClick={() => handleFilterChange('private')}
                   >
-                    Private
+                    {t('dashboard.private')}
                   </FilterButton>
                   <RepoCount>
-                    Showing {filteredRepos.length} of {repos.length} repositories
+                    {t('dashboard.showing')} {filteredRepos.length} {t('dashboard.of')} {repos.length} {t('dashboard.repositories')}
                   </RepoCount>
                 </FilterSection>
                 
                 <SortSection>
-                  <SortLabel>Sort by creation date:</SortLabel>
+                  <SortLabel>{t('dashboard.sortByCreationDate')}</SortLabel>
                   <SortButton 
                     active={sortOrder === 'newest'} 
                     disabled={isProcessing}
                     onClick={() => handleSortChange('newest')}
                   >
-                    Newest First
+                    {t('dashboard.newestFirst')}
                   </SortButton>
                   <SortButton 
                     active={sortOrder === 'oldest'} 
                     disabled={isProcessing}
                     onClick={() => handleSortChange('oldest')}
                   >
-                    Oldest First
+                    {t('dashboard.oldestFirst')}
                   </SortButton>
                 </SortSection>
                 <RepoList>
                   {filteredRepos.map((r) => (
                   <RepoItem key={r.id} onClick={() => handleAnalyzeRepo(r)}>
                     <RepoName>{r.full_name || r.name}</RepoName>
-                    <RepoDescription>{r.description || 'No description available'}</RepoDescription>
+                    <RepoDescription>{r.description || t('dashboard.noDescription')}</RepoDescription>
                     <RepoStats>
                       <StatItem>
-                        {r.private ? '🔒 Private' : '🌐 Public'}
+                        {r.private ? `🔒 ${t('dashboard.private')}` : `🌐 ${t('dashboard.public')}`}
                       </StatItem>
                       <StatItem>
-                        Stars: {r.stargazers_count || 0}
+                        {t('dashboard.stars')}: {r.stargazers_count || 0}
                       </StatItem>
                       <StatItem>
-                        Forks: {r.forks_count || 0}
+                        {t('dashboard.forks')}: {r.forks_count || 0}
                       </StatItem>
                       <StatItem>
-                        Language: {r.language || 'Unknown'}
+                        {t('dashboard.language')}: {r.language || t('dashboard.unknown')}
                       </StatItem>
                       <StatItem>
-                        Created: {new Date(r.created_at).toLocaleDateString()}
+                        {t('dashboard.created')}: {new Date(r.created_at).toLocaleDateString()}
                       </StatItem>
                     </RepoStats>
                     <AnalyzeButton onClick={(e) => {
                       e.stopPropagation();
                       handleAnalyzeRepo(r);
                     }}>
-                      Analyze
+                      {t('dashboard.analyze')}
                     </AnalyzeButton>
                   </RepoItem>
                 ))}

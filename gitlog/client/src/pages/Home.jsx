@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 const HomeContainer = styled.div`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
@@ -39,28 +40,84 @@ const MainContent = styled.div`
   width: 100%;
   position: relative;
   z-index: 1;
+  gap: 3rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    gap: 2rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 2rem 1rem;
+    gap: 1.5rem;
+  }
 `;
 
 const LeftContent = styled.div`
   flex: 1;
   color: white;
   max-width: 600px;
+  padding-right: 2rem;
+  
+  @media (max-width: 768px) {
+    padding-right: 1rem;
+    max-width: 100%;
+  }
+  
+  @media (max-width: 480px) {
+    padding-right: 0;
+    text-align: center;
+  }
 `;
 
 const MainTitle = styled.h1`
   font-size: 3.5rem;
   font-weight: bold;
   margin-bottom: 1.5rem;
-  line-height: 1.2;
+  line-height: 1.3;
   color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  
+  @media (max-width: 768px) {
+    font-size: 2.8rem;
+    line-height: 1.2;
+    margin-bottom: 1.2rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 2.2rem;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
 `;
 
 const Subtitle = styled.p`
   font-size: 1.3rem;
   margin-bottom: 2.5rem;
-  line-height: 1.5;
+  line-height: 1.6;
   opacity: 0.95;
   color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.01em;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+    line-height: 1.4;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const LoginPrompt = styled.p`
@@ -70,6 +127,8 @@ const LoginPrompt = styled.p`
   opacity: 0.8;
   color: white;
   font-style: italic;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 `;
 
 const StartButton = styled.button`
@@ -108,6 +167,16 @@ const LogoImage = styled.img`
   width: 300px;
   height: 300px;
   margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    width: 250px;
+    height: 250px;
+  }
+  
+  @media (max-width: 480px) {
+    width: 200px;
+    height: 200px;
+  }
 `;
 
 
@@ -118,6 +187,7 @@ const ArrowIcon = styled.span`
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleStartClick = () => {
     if (user) {
@@ -135,18 +205,18 @@ const Home = () => {
         <MainContent>
           <LeftContent>
             <MainTitle>
-              GitLog: Your Project's Story, Beautifully Documented
+              {user ? t('home.titleLoggedIn') : t('home.title')}
             </MainTitle>
             <Subtitle>
-              Effortlessly track changes, collaborate with your team, and celebrate every milestone.
+              {user ? t('home.subtitleLoggedIn') : t('home.subtitle')}
             </Subtitle>
             {!user && (
               <LoginPrompt style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
-                Login to access enhanced repository analysis features and AI-powered insights
+                {t('home.loginPrompt')}
               </LoginPrompt>
             )}
             <StartButton onClick={handleStartClick}>
-              {user ? 'Go to Dashboard' : 'Get Started'} <ArrowIcon>→</ArrowIcon>
+              {user ? t('home.goToDashboard') : t('home.getStarted')} <ArrowIcon>→</ArrowIcon>
             </StartButton>
           </LeftContent>
           <RightContent>

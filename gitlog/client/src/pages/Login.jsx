@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 const LoginContainer = styled.div`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
@@ -22,6 +23,10 @@ const LoginContainer = styled.div`
     bottom: 0;
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
     opacity: 0.3;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
   }
 `;
 
@@ -46,6 +51,11 @@ const LoginCard = styled.div`
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+    margin: 0 1rem;
+  }
 `;
 
 const LogoSection = styled.div`
@@ -72,7 +82,8 @@ const Subtitle = styled.p`
   margin-bottom: 2rem;
   font-size: 0.9rem;
   line-height: 1.4;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 `;
 
 const GitHubButton = styled.button`
@@ -97,6 +108,7 @@ const GitHubButton = styled.button`
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  white-space: nowrap;
 
   &:hover {
     transform: translateY(-2px);
@@ -127,6 +139,11 @@ const GitHubButton = styled.button`
   &:hover::before {
     left: 100%;
   }
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+    padding: 1rem 1.5rem;
+  }
 `;
 
 const GitHubIcon = styled.div`
@@ -142,11 +159,27 @@ const GitHubIcon = styled.div`
     object-fit: contain;
     filter: invert(1);
   }
+  
+  /* 로딩 스피너 스타일 */
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `;
 
 
 const Login = () => {
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGitHubLogin = () => {
@@ -172,21 +205,21 @@ const Login = () => {
           <LoginCard>
             <LogoSection>
               <LogoImage src="/gitlog.png" alt="GitLog Logo" />
-              <Title>Welcome to GitLog!</Title>
+              <Title>{t('login.title')}</Title>
               <Subtitle>
-                Check and improve your projects
+                {t('login.subtitle')}
               </Subtitle>
             </LogoSection>
             
             <GitHubButton onClick={handleGitHubLogin} disabled={isLoading}>
               <GitHubIcon>
                 {isLoading ? (
-                  '⏳'
+                  <div className="loading-spinner"></div>
                 ) : (
                   <img src="/github.png" alt="GitHub" />
                 )}
               </GitHubIcon>
-              {isLoading ? 'Redirecting to GitHub...' : 'Continue with GitHub'}
+              {isLoading ? t('login.loading') : t('login.loginWithGitHub')}
             </GitHubButton>
           </LoginCard>
         </MainContent>
