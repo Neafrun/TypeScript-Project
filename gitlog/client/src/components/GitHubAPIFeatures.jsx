@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
 
 const GitHubAPIContainer = styled.div`
@@ -118,6 +119,7 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
   const [releases, setReleases] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     console.log('🔍 [GitHubAPIFeatures] useEffect 실행:', {
@@ -191,11 +193,10 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
         {/* Pull Requests 분석 */}
         <FeatureCard>
           <FeatureHeader>
-            <FeatureIcon>🔄</FeatureIcon>
             <FeatureTitle>Pull Requests</FeatureTitle>
           </FeatureHeader>
           <FeatureDescription>
-            최근 PR 활동과 리뷰 패턴을 분석합니다.
+{t('analysis.githubFeatures.pullRequestsDescription')}
           </FeatureDescription>
           {pullRequests ? (
             <DataGrid>
@@ -224,11 +225,10 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
         {/* Issues 분석 */}
         <FeatureCard>
           <FeatureHeader>
-            <FeatureIcon>🐛</FeatureIcon>
             <FeatureTitle>Issues & Bugs</FeatureTitle>
           </FeatureHeader>
           <FeatureDescription>
-            이슈 추적과 버그 리포트 패턴을 분석합니다.
+{t('analysis.githubFeatures.issuesDescription')}
           </FeatureDescription>
           {issues ? (
             <DataGrid>
@@ -257,11 +257,10 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
         {/* CI/CD 워크플로우 */}
         <FeatureCard>
           <FeatureHeader>
-            <FeatureIcon>⚙️</FeatureIcon>
             <FeatureTitle>CI/CD Pipeline</FeatureTitle>
           </FeatureHeader>
           <FeatureDescription>
-            GitHub Actions 워크플로우와 배포 상태를 분석합니다.
+{t('analysis.githubFeatures.workflowsDescription')}
           </FeatureDescription>
           {workflows ? (
             <DataGrid>
@@ -274,7 +273,7 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
                 <DataLabel>Active</DataLabel>
               </DataItem>
               <DataItem>
-                <DataValue>{workflows.successRate || 'N/A'}%</DataValue>
+                <DataValue>{workflows.successRate ? `${workflows.successRate}%` : 'N/A'}</DataValue>
                 <DataLabel>Success Rate</DataLabel>
               </DataItem>
               <DataItem>
@@ -290,11 +289,10 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
         {/* Releases & Tags */}
         <FeatureCard>
           <FeatureHeader>
-            <FeatureIcon>🏷️</FeatureIcon>
             <FeatureTitle>Releases & Tags</FeatureTitle>
           </FeatureHeader>
           <FeatureDescription>
-            릴리즈 주기와 버전 관리 패턴을 분석합니다.
+{t('analysis.githubFeatures.releasesDescription')}
           </FeatureDescription>
           {releases ? (
             <DataGrid>

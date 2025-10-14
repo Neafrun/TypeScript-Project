@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
 
 const Container = styled.div`
@@ -83,6 +84,7 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (repoInfo) {
@@ -109,11 +111,10 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>⚙️</Icon>
           <Title>CI/CD Pipeline</Title>
         </Header>
-        <Description>GitHub Actions 워크플로우와 배포 상태를 분석합니다.</Description>
-        <LoadingState>워크플로우 데이터 로딩 중...</LoadingState>
+        <Description>{t('analysis.githubFeatures.workflowsDescription')}</Description>
+        <LoadingState>{t('analysis.githubFeatures.loadingWorkflows')}</LoadingState>
       </Container>
     );
   }
@@ -122,10 +123,9 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>⚙️</Icon>
           <Title>CI/CD Pipeline</Title>
         </Header>
-        <Description>GitHub Actions 워크플로우와 배포 상태를 분석합니다.</Description>
+        <Description>{t('analysis.githubFeatures.workflowsDescription')}</Description>
         <ErrorState>{error}</ErrorState>
       </Container>
     );
@@ -134,10 +134,9 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
   return (
     <Container>
       <Header>
-        <Icon>⚙️</Icon>
         <Title>CI/CD Pipeline</Title>
       </Header>
-      <Description>GitHub Actions 워크플로우와 배포 상태를 분석합니다.</Description>
+      <Description>{t('analysis.githubFeatures.workflowsDescription')}</Description>
       
       {data && (
         <DataGrid>
@@ -150,7 +149,7 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
             <DataLabel>Active</DataLabel>
           </DataItem>
           <DataItem>
-            <DataValue>{data.successRate || 'N/A'}%</DataValue>
+            <DataValue>{data.successRate ? `${data.successRate}%` : 'N/A'}</DataValue>
             <DataLabel>Success Rate</DataLabel>
           </DataItem>
           <DataItem>

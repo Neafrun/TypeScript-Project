@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useTranslation } from '../hooks/useTranslation';
 
 const AdvancedAnalysisContainer = styled.div`
   margin: 2rem 0;
@@ -112,6 +113,7 @@ const InsightItem = styled.li`
 const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
   const [advancedMetrics, setAdvancedMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (analysisData && analysisData.recentCommitsData) {
@@ -252,12 +254,12 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
       if (commitPatterns.peakHour >= 9 && commitPatterns.peakHour <= 17) {
         insights.push({
           type: 'positive',
-          text: `개발 활동이 업무 시간(${commitPatterns.peakHour}시)에 집중되어 있어 팀 협업에 유리합니다.`
+          text: t('analysis.advancedAnalysis.workTimeActivity', { hour: commitPatterns.peakHour })
         });
       } else {
         insights.push({
           type: 'warning',
-          text: `개발 활동이 비업무 시간(${commitPatterns.peakHour}시)에 집중되어 있습니다. 팀 협업 일정을 검토해보세요.`
+          text: t('analysis.advancedAnalysis.nonWorkTimeActivity', { hour: commitPatterns.peakHour })
         });
       }
     }
@@ -266,12 +268,12 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
       if (complexity.level === 'High') {
         insights.push({
           type: 'warning',
-          text: `프로젝트 복잡도가 높습니다. 코드 리팩토링이나 모듈화를 고려해보세요.`
+          text: t('analysis.advancedAnalysis.highComplexity')
         });
       } else if (complexity.level === 'Low') {
         insights.push({
           type: 'positive',
-          text: `프로젝트 복잡도가 적절하게 관리되고 있습니다.`
+          text: t('analysis.advancedAnalysis.wellManagedComplexity')
         });
       }
     }
@@ -280,12 +282,12 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
       if (collaboration.collaborationIndex > 70) {
         insights.push({
           type: 'positive',
-          text: `팀원 간 균등한 기여도 분산으로 건강한 협업 환경을 유지하고 있습니다.`
+          text: t('analysis.advancedAnalysis.healthyCollaboration')
         });
       } else if (collaboration.collaborationIndex < 40) {
         insights.push({
           type: 'warning',
-          text: `특정 개발자에게 기여도가 집중되어 있습니다. 지식 공유를 늘려보세요.`
+          text: t('analysis.advancedAnalysis.concentratedContributions')
         });
       }
     }
@@ -293,12 +295,12 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
     if (healthScore > 80) {
       insights.push({
         type: 'positive',
-        text: `전체적인 프로젝트 건강도가 우수합니다!`
+        text: t('analysis.advancedAnalysis.excellentProjectHealth')
       });
     } else if (healthScore < 50) {
       insights.push({
         type: 'info',
-        text: `프로젝트 개선 여지가 있습니다. 커밋 활동과 협업 패턴을 개선해보세요.`
+        text: t('analysis.advancedAnalysis.projectImprovementNeeded')
       });
     }
     
@@ -307,37 +309,56 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
 
   if (loading || !advancedMetrics || !analysisData) {
     return (
-      <AdvancedAnalysisContainer>
-        <SectionTitle>고급 분석 중...</SectionTitle>
-      </AdvancedAnalysisContainer>
+      <div style={{ 
+        background: 'white', 
+        padding: '1.5rem', 
+        borderRadius: '8px',
+        border: '1px solid #e1e5e9',
+        textAlign: 'center',
+        color: '#666'
+      }}>
+        <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>{t('analysis.premiumFeatures.advancedAnalysisAI')}</h4>
+        <p>{t('analysis.premiumFeatures.advancedAnalysisDescription')}</p>
+        <div style={{ 
+          background: '#f8f9fa', 
+          padding: '1rem', 
+          borderRadius: '6px', 
+          marginTop: '1rem',
+          border: '1px solid #dee2e6'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: '#ff8c42' }}>
+            {t('analysis.premiumFeatures.underDevelopment')}
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
     <AdvancedAnalysisContainer>
-      <SectionTitle>고급 분석 & 인사이트</SectionTitle>
+      <SectionTitle>{t('analysis.advancedAnalysis.title')}</SectionTitle>
       
       <AnalysisGrid>
         {/* 프로젝트 건강도 */}
         <AnalysisCard>
           <CardTitle>
             <span>💚</span>
-            프로젝트 건강도
+{t('analysis.advancedAnalysis.projectHealth')}
           </CardTitle>
           <MetricGrid>
             <MetricCard color="#d4edda">
               <MetricValue>{advancedMetrics.healthScore}/100</MetricValue>
-              <MetricLabel>종합 점수</MetricLabel>
+              <MetricLabel>{t('analysis.advancedAnalysis.overallScore')}</MetricLabel>
             </MetricCard>
             <MetricCard color={advancedMetrics.complexityMetrics?.level === 'Low' ? '#d4edda' : 
                              advancedMetrics.complexityMetrics?.level === 'Medium' ? '#fff3cd' : '#f8d7da'}>
               <MetricValue>{advancedMetrics.complexityMetrics?.level || 'N/A'}</MetricValue>
-              <MetricLabel>복잡도</MetricLabel>
+              <MetricLabel>{t('analysis.advancedAnalysis.complexity')}</MetricLabel>
             </MetricCard>
             <MetricCard color={advancedMetrics.collaborationMetrics?.level === 'High' ? '#d4edda' : 
                              advancedMetrics.collaborationMetrics?.level === 'Medium' ? '#fff3cd' : '#f8d7da'}>
               <MetricValue>{advancedMetrics.collaborationMetrics?.level || 'N/A'}</MetricValue>
-              <MetricLabel>협업 수준</MetricLabel>
+              <MetricLabel>{t('analysis.advancedAnalysis.collaborationLevel')}</MetricLabel>
             </MetricCard>
           </MetricGrid>
         </AnalysisCard>
@@ -347,7 +368,7 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
           <AnalysisCard>
             <CardTitle>
               <span>📊</span>
-              커밋 패턴 분석
+{t('analysis.advancedAnalysis.commitPatternAnalysis')}
             </CardTitle>
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
@@ -366,7 +387,7 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
             <MetricGrid>
               <MetricCard>
                 <MetricValue>{advancedMetrics.commitPatterns.peakHour}:00</MetricValue>
-                <MetricLabel>최대 활동 시간</MetricLabel>
+                <MetricLabel>{t('analysis.advancedAnalysis.peakActivityTime')}</MetricLabel>
               </MetricCard>
             </MetricGrid>
           </AnalysisCard>
@@ -377,20 +398,20 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
           <AnalysisCard>
             <CardTitle>
               <span>👥</span>
-              팀 협업 분석
+{t('analysis.advancedAnalysis.teamCollaborationAnalysis')}
             </CardTitle>
             <MetricGrid>
               <MetricCard>
                 <MetricValue>{advancedMetrics.collaborationMetrics.contributorCount}</MetricValue>
-                <MetricLabel>기여자 수</MetricLabel>
+                <MetricLabel>{t('analysis.advancedAnalysis.contributorCount')}</MetricLabel>
               </MetricCard>
               <MetricCard>
                 <MetricValue>{advancedMetrics.collaborationMetrics.avgCommitsPerContributor}</MetricValue>
-                <MetricLabel>평균 커밋/인</MetricLabel>
+                <MetricLabel>{t('analysis.advancedAnalysis.avgCommitsPerContributor')}</MetricLabel>
               </MetricCard>
               <MetricCard>
                 <MetricValue>{advancedMetrics.collaborationMetrics.collaborationIndex}/100</MetricValue>
-                <MetricLabel>협업 지수</MetricLabel>
+                <MetricLabel>{t('analysis.advancedAnalysis.collaborationIndex')}</MetricLabel>
               </MetricCard>
             </MetricGrid>
           </AnalysisCard>
@@ -401,16 +422,16 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
           <AnalysisCard>
             <CardTitle>
               <span>🧩</span>
-              프로젝트 복잡도
+{t('analysis.advancedAnalysis.projectComplexity')}
             </CardTitle>
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={[
-                      { name: '파일 수', value: advancedMetrics.complexityMetrics.factors.fileCount },
-                      { name: '커밋 수', value: Math.min(advancedMetrics.complexityMetrics.factors.commitCount, 100) },
-                      { name: '브랜치 수', value: advancedMetrics.complexityMetrics.factors.branchCount * 5 }
+                      { name: t('analysis.advancedAnalysis.fileCount'), value: advancedMetrics.complexityMetrics.factors.fileCount },
+                      { name: t('analysis.advancedAnalysis.commitCount'), value: Math.min(advancedMetrics.complexityMetrics.factors.commitCount, 100) },
+                      { name: t('analysis.advancedAnalysis.branchCount'), value: advancedMetrics.complexityMetrics.factors.branchCount * 5 }
                     ]}
                     cx="50%"
                     cy="50%"
@@ -434,7 +455,7 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
       <AnalysisCard>
         <CardTitle>
           <span>💡</span>
-          AI 인사이트 & 추천사항
+{t('analysis.advancedAnalysis.aiInsights')}
         </CardTitle>
         <InsightsList>
           {advancedMetrics.insights?.map((insight, index) => (
@@ -443,7 +464,7 @@ const AdvancedAnalysis = ({ analysisData, repoInfo }) => {
             </InsightItem>
           )) || (
             <InsightItem type="info">
-              분석 데이터가 부족하여 인사이트를 생성할 수 없습니다.
+{t('analysis.advancedAnalysis.insufficientData')}
             </InsightItem>
           )}
         </InsightsList>

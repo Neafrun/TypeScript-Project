@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
 
 const Container = styled.div`
@@ -83,6 +84,7 @@ const IssuesAnalysis = ({ repoInfo }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (repoInfo) {
@@ -109,11 +111,10 @@ const IssuesAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>🐛</Icon>
           <Title>Issues & Bugs</Title>
         </Header>
-        <Description>이슈 추적과 버그 리포트 패턴을 분석합니다.</Description>
-        <LoadingState>Issues 데이터 로딩 중...</LoadingState>
+        <Description>{t('analysis.githubFeatures.issuesDescription')}</Description>
+        <LoadingState>{t('analysis.githubFeatures.loadingIssues')}</LoadingState>
       </Container>
     );
   }
@@ -122,10 +123,9 @@ const IssuesAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>🐛</Icon>
           <Title>Issues & Bugs</Title>
         </Header>
-        <Description>이슈 추적과 버그 리포트 패턴을 분석합니다.</Description>
+        <Description>{t('analysis.githubFeatures.issuesDescription')}</Description>
         <ErrorState>{error}</ErrorState>
       </Container>
     );
@@ -134,10 +134,9 @@ const IssuesAnalysis = ({ repoInfo }) => {
   return (
     <Container>
       <Header>
-        <Icon>🐛</Icon>
         <Title>Issues & Bugs</Title>
       </Header>
-      <Description>이슈 추적과 버그 리포트 패턴을 분석합니다.</Description>
+      <Description>{t('analysis.githubFeatures.issuesDescription')}</Description>
       
       {data && (
         <DataGrid>

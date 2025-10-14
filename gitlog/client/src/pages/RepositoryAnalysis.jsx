@@ -418,7 +418,7 @@ const ActivityDescription = styled.p`
 
 const RepositoryAnalysis = () => {
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const { t } = useTranslation();
   const [repositoryUrl, setRepositoryUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -458,7 +458,7 @@ const RepositoryAnalysis = () => {
   };
 
   // 로그인 상태 및 분석 데이터 변수들
-  const isLoggedIn = user && user.login;
+  const isLoggedIn = !!user;
   const analysisData = analysis;
   const repoInfo = repositoryUrl ? parseRepositoryUrl(repositoryUrl) : null;
   
@@ -469,13 +469,29 @@ const RepositoryAnalysis = () => {
     analysisData: analysisData,
     repoInfo: repoInfo
   });
+  
+  // 분석 데이터 구조 확인
+  console.log('📋 [RepositoryAnalysis] 분석 데이터 구조:', {
+    analysis: analysis,
+    contributionPattern: analysis?.contributionPattern,
+    distribution: analysis?.contributionPattern?.distribution, // 올바른 경로
+    metricsDistribution: analysis?.contributionPattern?.metrics?.distribution // 기존 경로도 확인
+  });
 
 
   // 차트 데이터 생성 함수 - 개선된 코드 품질 기반 평가
   const generateChartData = (contributors) => {
-    if (!contributors || contributors.length === 0) return [];
+    console.log('🔍 [generateChartData] 입력 데이터:', contributors);
     
-    return contributors.slice(0, 10).map(contributor => {
+    if (!contributors || contributors.length === 0) {
+      console.log('⚠️ [generateChartData] 기여자 데이터가 없습니다.');
+      return [];
+    }
+    
+    // 모든 기여자를 표시하되, 최대 20명으로 제한 (성능 고려)
+    const chartData = contributors.slice(0, 20).map((contributor, index) => {
+      if (!contributor) return null; // 안전성 검사
+      
       const commits = contributor.commits || contributor.total || 0;
       const weeks = contributor.weeks || [];
       
@@ -582,9 +598,13 @@ const RepositoryAnalysis = () => {
       // 최대 100점으로 제한
       qualityScore = Math.min(100, Math.max(0, qualityScore));
       
+      // 사용자 이름과 아바타 안전하게 처리
+      const userName = contributor.author || contributor.authorName || contributor.login || `User ${index + 1}`;
+      const userAvatar = contributor.avatar || contributor.avatar_url || null;
+      
       return {
-        name: contributor.author || contributor.authorName || 'Unknown',
-        avatar: contributor.avatar || null,
+        name: userName,
+        avatar: userAvatar,
         qualityScore: Math.round(qualityScore),
         commits: commits,
         percentage: contributor.percentage || 0,
@@ -597,7 +617,10 @@ const RepositoryAnalysis = () => {
           avgCommitsPerWeek: totalWeeks > 0 ? Math.round((commits / totalWeeks) * 100) / 100 : 0
         }
       };
-    }).sort((a, b) => b.qualityScore - a.qualityScore); // 품질 점수 순으로 정렬
+    }).filter(item => item !== null).sort((a, b) => b.qualityScore - a.qualityScore); // 품질 점수 순으로 정렬
+    
+    console.log('📊 [generateChartData] 생성된 차트 데이터:', chartData);
+    return chartData;
   };
 
   const handleBranchClick = (branch) => {
@@ -729,16 +752,88 @@ const RepositoryAnalysis = () => {
         }
       }
 
-      // 4. 레포지토리 분석 수행
+      // 4. 기여자 데이터 가져오기
+      let contributorsData = [];
+      try {
+        console.log('🔍 [프론트엔드] 기여자 데이터를 가져옵니다...');
+        console.log('🔍 [프론트엔드] API 엔드포인트:', `${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
+        
+        // 먼저 인증된 API 시도
+        try {
+          contributorsData = await apiGet(`${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
+          console.log('✅ [프론트엔드] 인증된 API로 기여자 데이터 가져오기 완료:', contributorsData);
+        } catch (authError) {
+          console.warn('⚠️ [프론트엔드] 인증된 API 실패, 공개 API 시도:', authError.message);
+          // 공개 API로 시도
+          contributorsData = await apiGet(`${baseEndpoint}/public/commits/${repoInfo.owner}/${repoInfo.repo}`);
+          console.log('✅ [프론트엔드] 공개 API로 기여자 데이터 가져오기 완료:', contributorsData);
+        }
+        
+        console.log('✅ [프론트엔드] 기여자 데이터 타입:', typeof contributorsData);
+        console.log('✅ [프론트엔드] 기여자 데이터 길이:', contributorsData ? contributorsData.length : 'undefined');
+      } catch (contributorError) {
+        console.error('❌ [프론트엔드] 모든 기여자 데이터 API 실패:', contributorError);
+        console.error('❌ [프론트엔드] 에러 상세:', contributorError.message);
+        
+        // 커밋 데이터에서 기여자 정보 추출하여 대체 데이터 생성
+        console.log('🔄 [프론트엔드] 커밋 데이터에서 기여자 정보 추출 시도...');
+        const contributorMap = new Map();
+        
+        if (recentCommitsData && recentCommitsData.length > 0) {
+          recentCommitsData.forEach((commit, index) => {
+            const author = commit.commit?.author || commit.author;
+            if (author) {
+              const authorName = author.name || author.login || `User ${index + 1}`;
+              if (contributorMap.has(authorName)) {
+                contributorMap.get(authorName).commits++;
+              } else {
+                contributorMap.set(authorName, {
+                  author: authorName,
+                  authorName: authorName,
+                  avatar: author.avatar_url || null,
+                  commits: 1,
+                  total: 1,
+                  additions: 0,
+                  deletions: 0,
+                  weeks: [],
+                  percentage: 0
+                });
+              }
+            }
+          });
+          
+          contributorsData = Array.from(contributorMap.values());
+          console.log('✅ [프론트엔드] 커밋 데이터에서 추출한 기여자 데이터:', contributorsData);
+        }
+        
+        if (contributorsData.length === 0) {
+          contributorsData = [];
+        }
+      }
+
+      // 5. 레포지토리 분석 수행
+      console.log('🔍 [프론트엔드] 분석 API 호출 데이터:', {
+        owner: repoInfo.owner,
+        repo: repoInfo.repo,
+        commitsCount: recentCommitsData ? recentCommitsData.length : 0,
+        contributorsCount: contributorsData ? contributorsData.length : 0,
+        contributorsData: contributorsData
+      });
+      
       const analysisResponse = await apiPost(`${baseEndpoint}/analyze`, {
         owner: repoInfo.owner,
         repo: repoInfo.repo,
         commits: recentCommitsData,
-        contributors: commitsData
+        contributors: contributorsData
       });
 
       // 백엔드 응답 구조에 맞게 분석 데이터 추출
       const analysisData = analysisResponse.analysis || analysisResponse;
+      
+      console.log('✅ [프론트엔드] 분석 응답 받음:', analysisResponse);
+      console.log('✅ [프론트엔드] 분석 데이터:', analysisData);
+      console.log('✅ [프론트엔드] 기여 패턴:', analysisData?.contributionPattern);
+      console.log('✅ [프론트엔드] 기여 패턴 distribution:', analysisData?.contributionPattern?.distribution);
 
       setAnalysis({
         ...analysisData,
@@ -880,9 +975,42 @@ const RepositoryAnalysis = () => {
               <ChartContainer>
                 <ChartTitle>{t('analysis.codeQualityScore')}</ChartTitle>
                 <ChartSubtitle>Contributor-wise code quality assessment</ChartSubtitle>
-                <ResponsiveContainer width="100%" height={400}>
+                {(() => {
+                  // 두 경로 모두 확인하여 데이터 찾기
+                  const contributors = analysis.contributionPattern?.distribution || 
+                                    analysis.contributionPattern?.metrics?.distribution || [];
+                  const chartData = generateChartData(contributors);
+                  console.log('🔍 [Chart] 사용할 기여자 데이터:', contributors);
+                  
+                  if (chartData.length === 0) {
+                    return (
+                      <div style={{ 
+                        height: '400px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        flexDirection: 'column',
+                        color: '#666',
+                        fontSize: '16px'
+                      }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+                        <div>{t('analysis.noContributorData')}</div>
+                        <div style={{ fontSize: '14px', marginTop: '8px', color: '#999' }}>
+                          {t('analysis.checkCommitHistory')}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <ResponsiveContainer width="100%" height={400}>
                   <BarChart
-                    data={generateChartData(analysis.contributionPattern?.metrics?.distribution || [])}
+                    data={(() => {
+                      const contributors = analysis.contributionPattern?.distribution || 
+                                        analysis.contributionPattern?.metrics?.distribution || [];
+                      const chartData = generateChartData(contributors);
+                      console.log('🎯 [BarChart] 렌더링할 데이터:', chartData);
+                      return chartData;
+                    })()}
                     margin={{ top: 20, right: 30, left: 60, bottom: 20 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -891,7 +1019,7 @@ const RepositoryAnalysis = () => {
                       hide={true}
                     />
                     <YAxis
-                      label={{ value: 'Quality Score', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '14px', fill: '#666' } }}
+                      label={{ value: t('analysis.chart.qualityScore'), angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '14px', fill: '#666' } }}
                       domain={[0, 100]}
                       stroke="#666"
                       tick={{ fontSize: 12 }}
@@ -899,8 +1027,8 @@ const RepositoryAnalysis = () => {
                     />
                     <Tooltip
                       formatter={(value, name) => [
-                        `${value} points`,
-                        'Code Quality Score'
+                        `${value} ${t('analysis.chart.points')}`,
+                        t('analysis.chart.codeQualityScore')
                       ]}
                       contentStyle={{
                         backgroundColor: 'white',
@@ -914,7 +1042,11 @@ const RepositoryAnalysis = () => {
                       name="qualityScore" 
                       radius={[4, 4, 0, 0]}
                     >
-                      {generateChartData(analysis.contributionPattern?.metrics?.distribution || []).map((entry, index) => {
+                      {(() => {
+                        const contributors = analysis.contributionPattern?.distribution || 
+                                          analysis.contributionPattern?.metrics?.distribution || [];
+                        return generateChartData(contributors);
+                      })().map((entry, index) => {
                         const score = entry.qualityScore;
                         let color = '#9E9E9E'; // 기본 회색
                         
@@ -927,7 +1059,9 @@ const RepositoryAnalysis = () => {
                       })}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                  );
+                })()}
                 
                 {/* 점수별 색상 범례 */}
                 <div style={{ 
@@ -940,27 +1074,27 @@ const RepositoryAnalysis = () => {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <div style={{ width: '12px', height: '12px', backgroundColor: '#4CAF50', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>80-100 points</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points80to100')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <div style={{ width: '12px', height: '12px', backgroundColor: '#2196F3', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>60-79 points</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points60to79')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <div style={{ width: '12px', height: '12px', backgroundColor: '#FF9800', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>40-59 points</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points40to59')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <div style={{ width: '12px', height: '12px', backgroundColor: '#FF5722', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>20-39 points</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points20to39')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <div style={{ width: '12px', height: '12px', backgroundColor: '#9E9E9E', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>0-19 points</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points0to19')}</span>
                   </div>
                 </div>
 
-                {/* 기여자 프로필 이미지와 이름 표시 */}
+                {/* {t('analysis.chart.contributorProfiles')} */}
                 <div style={{ 
                   display: 'flex', 
                   justifyContent: 'space-around', 
@@ -968,8 +1102,11 @@ const RepositoryAnalysis = () => {
                   marginTop: '20px',
                   padding: '0 20px'
                 }}>
-                  {generateChartData(analysis.contributionPattern?.metrics?.distribution || []).map((contributor, index) => (
-                    <div key={index} style={{ 
+                  {generateChartData(analysis.contributionPattern?.metrics?.distribution || []).map((contributor, index) => {
+                    if (!contributor) return null; // 안전성 검사
+                    
+                    return (
+                    <div key={`contributor-${index}`} style={{ 
                       display: 'flex', 
                       flexDirection: 'column', 
                       alignItems: 'center',
@@ -978,7 +1115,7 @@ const RepositoryAnalysis = () => {
                       {contributor.avatar ? (
                         <img 
                           src={contributor.avatar} 
-                          alt={contributor.name}
+                          alt={contributor.name || `User ${index + 1}`}
                           style={{ 
                             width: '40px', 
                             height: '40px', 
@@ -986,25 +1123,28 @@ const RepositoryAnalysis = () => {
                             marginBottom: '8px',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                           }} 
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
                         />
-                      ) : (
-                        <div style={{ 
-                          width: '40px', 
-                          height: '40px', 
-                          borderRadius: '50%', 
-                          backgroundColor: '#6c757d', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          marginBottom: '8px',
-                          fontSize: '16px',
-                          fontWeight: 'bold',
-                          color: 'white',
+                      ) : null}
+                      <div style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        borderRadius: '50%', 
+                        backgroundColor: '#6c757d', 
+                        display: contributor.avatar ? 'none' : 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        marginBottom: '8px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        color: 'white',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                         }}>
-                          {contributor.name.charAt(0).toUpperCase()}
+                          {(contributor.name || 'U').charAt(0).toUpperCase()}
                         </div>
-                      )}
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ 
                           fontSize: '12px', 
@@ -1012,7 +1152,7 @@ const RepositoryAnalysis = () => {
                           color: '#333',
                           marginBottom: '2px'
                         }}>
-                          {contributor.name}
+                          {contributor.name || `User ${index + 1}`}
                         </div>
                         <div style={{ 
                           fontSize: '10px', 
@@ -1023,12 +1163,13 @@ const RepositoryAnalysis = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </ChartContainer>
 
               <ResultsCard>
-                <SectionTitle>Analysis Results: {analysis.repository.full_name}</SectionTitle>
+                <SectionTitle>{t('analysis.analysisResults')}: {analysis.repository.full_name}</SectionTitle>
               
               <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
               <div style={{ 
@@ -1099,7 +1240,7 @@ const RepositoryAnalysis = () => {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                   }}>
                     <h4 style={{ margin: '0 0 1rem 0', color: '#1565c0', fontSize: '1.2rem', fontWeight: '600' }}>
-                      Branch Analysis Results ({analysis.branchStats.length} branches)
+                      {t('analysis.branchAnalysisResults')} ({analysis.branchStats.length} {t('analysis.branches')})
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.9rem' }}>
                       <div style={{ textAlign: 'center' }}>
@@ -1139,17 +1280,75 @@ const RepositoryAnalysis = () => {
                       gap: '1.5rem' 
                     }}>
                       {analysis.branchStats.map((branch, index) => {
-                        // 브랜치별 품질 점수 계산
+                        // 브랜치 객체 유효성 검사
+                        if (!branch) {
+                          return null;
+                        }
+                        
+                        // 브랜치별 품질 점수 계산 (더 세분화된 알고리즘)
                         const branchCommits = analysis.contributionPattern?.metrics?.distribution?.filter(
                           contributor => contributor.weeks && contributor.weeks.length > 0
                         )?.length || 0;
                         
-                        let branchQualityScore = 0;
-                        if (branch.commitCount > 50) branchQualityScore += 40;
-                        else if (branch.commitCount > 20) branchQualityScore += 30;
-                        else if (branch.commitCount > 10) branchQualityScore += 25;
-                        else if (branch.commitCount > 5) branchQualityScore += 20;
-                        else if (branch.commitCount > 0) branchQualityScore += 15;
+                        // 각 평가 기준별 점수 계산
+                        let qualityBreakdown = {
+                          commitQuality: 0,        // 커밋 품질 (30점)
+                          codeMaintainability: 0,  // 코드 유지보수성 (25점)
+                          collaborationPattern: 0, // 협업 패턴 (25점)
+                          developmentConsistency: 0 // 개발 일관성 (20점)
+                        };
+                        
+                        // 1. 커밋 품질 점수 (30점 만점)
+                        if (branch.commitCount >= 15 && branch.commitCount <= 80) {
+                          qualityBreakdown.commitQuality = 30; // 이상적인 범위
+                        } else if (branch.commitCount >= 10 && branch.commitCount <= 120) {
+                          qualityBreakdown.commitQuality = 25; // 양호한 범위
+                        } else if (branch.commitCount >= 5 && branch.commitCount <= 200) {
+                          qualityBreakdown.commitQuality = 20; // 보통 범위
+                        } else if (branch.commitCount >= 1 && branch.commitCount <= 300) {
+                          qualityBreakdown.commitQuality = 15; // 허용 가능
+                        } else if (branch.commitCount > 0) {
+                          qualityBreakdown.commitQuality = 10; // 최소 점수
+                        }
+                        
+                        // 2. 코드 유지보수성 점수 (25점 만점)
+                        // 브랜치 이름과 커밋 패턴으로 유지보수성 평가
+                        const branchName = (branch.name || branch.branch || '').toLowerCase();
+                        if (branchName.includes('main') || branchName.includes('master')) {
+                          qualityBreakdown.codeMaintainability = 25; // 메인 브랜치
+                        } else if (branchName.includes('develop') || branchName.includes('dev')) {
+                          qualityBreakdown.codeMaintainability = 22; // 개발 브랜치
+                        } else if (branchName.includes('feature') || branchName.includes('feat')) {
+                          qualityBreakdown.codeMaintainability = 20; // 기능 브랜치
+                        } else if (branchName.includes('bugfix') || branchName.includes('hotfix')) {
+                          qualityBreakdown.codeMaintainability = 18; // 버그 수정 브랜치
+                        } else if (branchName.includes('test') || branchName.includes('temp')) {
+                          qualityBreakdown.codeMaintainability = 10; // 테스트/임시 브랜치
+                        } else {
+                          qualityBreakdown.codeMaintainability = 15; // 기타 브랜치
+                        }
+                        
+                        // 3. 협업 패턴 점수 (25점 만점)
+                        // 기여자 수와 커밋 분산도로 평가
+                        const contributorCount = branchCommits;
+                        if (contributorCount >= 3) {
+                          qualityBreakdown.collaborationPattern = 25; // 팀 협업 우수
+                        } else if (contributorCount >= 2) {
+                          qualityBreakdown.collaborationPattern = 20; // 협업 양호
+                        } else if (contributorCount >= 1) {
+                          qualityBreakdown.collaborationPattern = 15; // 개인 작업
+                        } else {
+                          qualityBreakdown.collaborationPattern = 5; // 협업 없음
+                        }
+                        
+                        // 4. 개발 일관성 점수 (20점 만점)
+                        // 브랜치 생성일과 활동 패턴으로 평가
+                        const branchAge = branch.commitCount > 0 ? Math.min(branch.commitCount / 10, 1) : 0;
+                        const consistencyScore = Math.round(branchAge * 20);
+                        qualityBreakdown.developmentConsistency = Math.max(5, consistencyScore);
+                        
+                        // 총 품질 점수 계산
+                        let branchQualityScore = Object.values(qualityBreakdown).reduce((sum, score) => sum + score, 0);
                         
                         // 브랜치 보호 여부에 따른 추가 점수
                         if (branch.branchProtected) branchQualityScore += 20;
@@ -1160,8 +1359,9 @@ const RepositoryAnalysis = () => {
                         
                         branchQualityScore = Math.min(100, branchQualityScore);
                         
-                        const isMainBranch = branch.branch === 'main' || branch.branch === 'master';
-                        const isDevelopBranch = branch.branch === 'develop' || branch.branch === 'dev';
+                        const branchDisplayName = branch.name || branch.branch || `branch-${index}`;
+                        const isMainBranch = branchDisplayName === 'main' || branchDisplayName === 'master';
+                        const isDevelopBranch = branchDisplayName === 'develop' || branchDisplayName === 'dev';
                         
                         return (
                           <div key={index} 
@@ -1223,7 +1423,7 @@ const RepositoryAnalysis = () => {
                                 fontWeight: '600',
                                 color: '#2c3e50'
                               }}>
-                                {branch.branch}
+                                {branchDisplayName}
                               </h5>
                             </div>
                             
@@ -1272,6 +1472,56 @@ const RepositoryAnalysis = () => {
                               </div>
                             </div>
                             
+                            {/* 세부 점수 표시 */}
+                            <div style={{ 
+                              marginBottom: '1rem',
+                              padding: '0.75rem',
+                              backgroundColor: '#f8f9fa',
+                              borderRadius: '8px',
+                              border: '1px solid #e9ecef'
+                            }}>
+                              <div style={{ 
+                                fontSize: '0.8rem', 
+                                fontWeight: '600', 
+                                color: '#495057',
+                                marginBottom: '0.5rem',
+                                textAlign: 'center'
+                              }}>
+                                📊 {t('analysis.branchQuality.detailedEvaluationCriteria')}
+                              </div>
+                              <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: '1fr 1fr', 
+                                gap: '0.5rem',
+                                fontSize: '0.75rem'
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.commitQuality')}</span>
+                                  <span style={{ fontWeight: '600', color: '#28a745' }}>
+                                    {qualityBreakdown.commitQuality}/30
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.maintainability')}</span>
+                                  <span style={{ fontWeight: '600', color: '#007bff' }}>
+                                    {qualityBreakdown.codeMaintainability}/25
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.collaborationPattern')}</span>
+                                  <span style={{ fontWeight: '600', color: '#ffc107' }}>
+                                    {qualityBreakdown.collaborationPattern}/25
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.developmentConsistency')}</span>
+                                  <span style={{ fontWeight: '600', color: '#17a2b8' }}>
+                                    {qualityBreakdown.developmentConsistency}/20
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
                             <div style={{ 
                               display: 'grid', 
                               gridTemplateColumns: '1fr 1fr', 
@@ -1307,7 +1557,7 @@ const RepositoryAnalysis = () => {
                   </MetricCard>
                   <MetricCard>
                     <MetricTitle>{t('analysis.qualityLevel')}</MetricTitle>
-                    <MetricValue>{analysis.codeQuality?.level || '분석 중...'}</MetricValue>
+                    <MetricValue>{analysis.codeQuality?.level || t('analysis.analyzing')}</MetricValue>
                   </MetricCard>
                   <MetricCard>
                     <MetricTitle>{t('analysis.totalCommits')}</MetricTitle>
@@ -1506,14 +1756,16 @@ const RepositoryAnalysis = () => {
                            )}
                          </div>
                   <MetricGrid>
-                    {analysis.branchStats.slice(0, 8).map((branch, index) => (
+                    {analysis.branchStats.slice(0, 8).map((branch, index) => {
+                      const branchDisplayName = branch.name || branch.branch || `branch-${index}`;
+                      return (
                       <MetricCard key={index} color={
                         branch.commitCount > 50 ? '#4CAF50' :
                         branch.commitCount > 20 ? '#2196F3' :
                         branch.commitCount > 10 ? '#FF9800' :
                         branch.commitCount > 5 ? '#FF5722' : '#9E9E9E'
                       }>
-                        <MetricTitle>{branch.branch}</MetricTitle>
+                        <MetricTitle>{branchDisplayName}</MetricTitle>
                         <MetricValue>{branch.commitCount} commits</MetricValue>
                         {branch.branchProtected && (
                           <div style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '0.5rem' }}>
@@ -1521,17 +1773,18 @@ const RepositoryAnalysis = () => {
                           </div>
                         )}
                       </MetricCard>
-                    ))}
+                      );
+                    })}
                   </MetricGrid>
                 </>
               )}
 
               <SectionTitle>{t('analysis.activityLevel')}</SectionTitle>
-              <p>{analysis.activityLevel?.description || '분석 중...'}</p>
+              <p>{analysis.activityLevel?.description ? t(analysis.activityLevel.description) : t('analysis.analyzing')}</p>
               <MetricGrid>
                 <MetricCard>
                   <MetricTitle>{t('analysis.activityLevel')}</MetricTitle>
-                  <MetricValue>{analysis.activityLevel?.level || '분석 중...'}</MetricValue>
+                  <MetricValue>{analysis.activityLevel?.level || t('analysis.analyzing')}</MetricValue>
                 </MetricCard>
                 <MetricCard>
                   <MetricTitle>{t('analysis.recentCommits')}</MetricTitle>
@@ -1548,28 +1801,18 @@ const RepositoryAnalysis = () => {
                 {analysis.recommendations?.map((rec, index) => (
                   <RecommendationItem key={index} priority={rec.priority}>
                     <PriorityBadge priority={rec.priority}>{rec.priority}</PriorityBadge>
-                    <strong>{rec.title}:</strong> {rec.description}
+                    <strong>{t(rec.title)}:</strong> {t(rec.description)}
                   </RecommendationItem>
                 )) || (
                   <RecommendationItem priority="low">
                     <PriorityBadge priority="low">{t('analysis.information')}</PriorityBadge>
-                    <strong>분석 완료:</strong> 현재 분석 데이터를 기반으로 추천사항을 준비 중입니다.
+                    <strong>{t('analysis.githubFeatures.analysisComplete')}</strong> {t('analysis.githubFeatures.preparingRecommendations')}
                   </RecommendationItem>
                 )}
               </RecommendationList>
               </ResultsCard>
 
               {/* 프리미엄 기능들 */}
-              {/* 고급 분석 - 로그인 사용자 전용 */}
-              <PremiumFeature
-                title="고급 분석 & AI 인사이트"
-                description="머신러닝 기반 코드 품질 분석, 커밋 패턴 분석, 팀 협업 지표, 프로젝트 건강도 평가 등 고급 분석 기능을 제공합니다."
-                isLoggedIn={isLoggedIn}
-                onLoginClick={() => window.location.href = '/api/auth/github'}
-              >
-                <AdvancedAnalysis analysisData={analysisData} repoInfo={repoInfo} />
-              </PremiumFeature>
-
               {/* GitHub API 연동 기능들 - 개별 컴포넌트로 분리 */}
               {isLoggedIn && repoInfo ? (
                 <>
@@ -1583,7 +1826,7 @@ const RepositoryAnalysis = () => {
                   title="GitHub API 연동 기능"
                   description="Pull Requests, Issues, CI/CD 워크플로우, 릴리즈 관리 등 GitHub의 모든 기능을 통합 분석합니다."
                   isLoggedIn={isLoggedIn}
-                  onLoginClick={() => window.location.href = '/api/auth/github'}
+                  onLoginClick={login}
                 >
                   <div style={{ 
                     background: 'white', 
@@ -1600,10 +1843,10 @@ const RepositoryAnalysis = () => {
 
               {/* 추가 프리미엄 기능들 */}
               <PremiumFeature
-                title="코드 품질 분석"
-                description="코드 복잡도, 유지보수성, 테스트 커버리지 등 상세한 코드 품질 메트릭을 제공합니다."
+                title={t('analysis.premiumFeatures.codeQualityAnalysis')}
+                description={t('analysis.premiumDescriptions.codeQualityMetrics')}
                 isLoggedIn={isLoggedIn}
-                onLoginClick={() => window.location.href = '/api/auth/github'}
+                onLoginClick={login}
               >
                 <div style={{ 
                   background: 'white', 
@@ -1613,15 +1856,27 @@ const RepositoryAnalysis = () => {
                   textAlign: 'center',
                   color: '#666'
                 }}>
-                  로그인 후 상세한 코드 품질 분석을 확인할 수 있습니다.
+                  <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>{t('analysis.premiumFeatures.codeQualityAnalysisFeature')}</h4>
+                  <p>{t('analysis.premiumDescriptions.codeQualityDetails')}</p>
+                  <div style={{ 
+                    background: '#f8f9fa', 
+                    padding: '1rem', 
+                    borderRadius: '6px', 
+                    marginTop: '1rem',
+                    border: '1px solid #dee2e6'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#ff8c42' }}>
+                      {t('analysis.premiumFeatures.underDevelopment')}
+                    </p>
+                  </div>
                 </div>
               </PremiumFeature>
 
               <PremiumFeature
-                title="팀 협업 분석"
-                description="개발자별 생산성 지표, 코드 리뷰 패턴, 팀 동역학 분석 등을 제공합니다."
+                title={t('analysis.premiumFeatures.teamCollaborationAnalysis')}
+                description={t('analysis.premiumDescriptions.teamCollaborationMetrics')}
                 isLoggedIn={isLoggedIn}
-                onLoginClick={() => window.location.href = '/api/auth/github'}
+                onLoginClick={login}
               >
                 <div style={{ 
                   background: 'white', 
@@ -1631,8 +1886,30 @@ const RepositoryAnalysis = () => {
                   textAlign: 'center',
                   color: '#666'
                 }}>
-                  로그인 후 팀 협업 분석 기능을 사용할 수 있습니다.
+                  <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>{t('analysis.premiumDescriptions.teamCollaborationFeature')}</h4>
+                  <p>{t('analysis.premiumDescriptions.teamCollaborationDetails')}</p>
+                  <div style={{ 
+                    background: '#f8f9fa', 
+                    padding: '1rem', 
+                    borderRadius: '6px', 
+                    marginTop: '1rem',
+                    border: '1px solid #dee2e6'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#ff8c42' }}>
+                      {t('analysis.premiumFeatures.underDevelopment')}
+                    </p>
+                  </div>
                 </div>
+              </PremiumFeature>
+
+              {/* 고급 분석 & AI 인사이트 - 맨 밑에 배치 */}
+              <PremiumFeature
+                title={t('analysis.premiumFeatures.advancedAnalysisAI')}
+                description={t('analysis.premiumFeatures.advancedAnalysisDescription')}
+                isLoggedIn={isLoggedIn}
+                onLoginClick={login}
+              >
+                <AdvancedAnalysis analysisData={analysisData} repoInfo={repoInfo} />
               </PremiumFeature>
             </>
           )}
@@ -1660,7 +1937,7 @@ const RepositoryAnalysis = () => {
                   {selectedBranch.commitCount}
                 </ActivityValue>
                 <ActivityDescription>
-                  {t('analysis.totalCommits')} in this branch
+                  {t('analysis.totalCommits')} {t('analysis.inThisBranch')}
                 </ActivityDescription>
               </ActivityCard>
 
@@ -1692,17 +1969,17 @@ const RepositoryAnalysis = () => {
 
               <ActivityCard level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
                 <ActivityTitle level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
-                  Activity Level
+                  {t('analysis.activityLevel')}
                 </ActivityTitle>
                 <ActivityValue level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
-                  {selectedBranch.commitCount > 100 ? 'Very Active' : 
-                   selectedBranch.commitCount > 50 ? 'Active' : 
-                   selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}
+                  {selectedBranch.commitCount > 100 ? t('analysis.veryActive') : 
+                   selectedBranch.commitCount > 50 ? t('analysis.active') : 
+                   selectedBranch.commitCount > 20 ? t('analysis.moderate') : t('analysis.low')}
                 </ActivityValue>
                 <ActivityDescription>
-                  {selectedBranch.commitCount > 100 ? 'Highly active development' : 
-                   selectedBranch.commitCount > 50 ? 'Active development' : 
-                   selectedBranch.commitCount > 20 ? 'Moderate activity' : 'Low activity'}
+                  {selectedBranch.commitCount > 100 ? t('analysis.highlyActiveDevelopment') : 
+                   selectedBranch.commitCount > 50 ? t('analysis.activeDevelopment') : 
+                   selectedBranch.commitCount > 20 ? t('analysis.moderateActivity') : t('analysis.lowActivity')}
                 </ActivityDescription>
               </ActivityCard>
             </BranchActivityGrid>
@@ -1714,16 +1991,16 @@ const RepositoryAnalysis = () => {
               border: '1px solid #dee2e6'
             }}>
               <h4 style={{ margin: '0 0 1rem 0', color: '#2c3e50', fontSize: '1.1rem', fontWeight: '600' }}>
-                Branch Summary
+{t('analysis.branchSummary')}
               </h4>
               <p style={{ margin: '0', color: '#666', lineHeight: '1.5', fontSize: '0.95rem' }}>
-                The <strong>{selectedBranch.branch}</strong> branch has {selectedBranch.commitCount} commits and is 
-                {selectedBranch.branchProtected ? ' protected with branch rules' : ' open for direct pushes'}. 
+                <strong>{selectedBranch.branch}</strong> {t('analysis.branchHasCommitsAndIs').replace('{count}', selectedBranch.commitCount)} 
+                {selectedBranch.branchProtected ? t('analysis.protectedWithBranchRules') : t('analysis.openForDirectPushes')}. 
                 {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 
-                  ' This is the main production branch.' : 
+                  t('analysis.mainProductionBranch') : 
                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ?
-                  ' This is the development integration branch.' :
-                  ' This appears to be a feature or topic branch.'}
+                  t('analysis.developmentIntegrationBranchDesc') :
+                  t('analysis.appearsToBeFeatureBranch')}
               </p>
             </div>
           </ModalContent>

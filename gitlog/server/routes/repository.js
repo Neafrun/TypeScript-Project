@@ -702,6 +702,11 @@ router.post('/public/analyze', async (req, res) => {
     const { owner, repo, commits, contributors } = req.body;
 
     console.log(`🔄 [공개 레포지토리 분석] ${owner}/${repo} 분석을 시작합니다`);
+    console.log('🔍 [공개 분석 API] 요청 데이터 확인:', {
+      commits: commits ? commits.length : 0,
+      contributors: contributors ? contributors.length : 0,
+      contributorsData: contributors
+    });
 
     if (!commits || commits.length === 0) {
       return res.status(400).json({ error: '분석할 커밋 데이터가 없습니다' });
@@ -902,7 +907,14 @@ function analyzeCodeQuality(commits, contributors) {
 
 // 기여 패턴 분석 함수
 function analyzeContributionPattern(contributors) {
+  console.log('🔍 [analyzeContributionPattern] 입력 데이터:', {
+    contributors: contributors,
+    contributorsLength: contributors ? contributors.length : 0,
+    contributorsType: typeof contributors
+  });
+  
   if (!contributors || contributors.length === 0) {
+    console.log('⚠️ [analyzeContributionPattern] 기여자 데이터가 없습니다');
     return {
       distribution: [],
       metrics: {
@@ -958,19 +970,19 @@ function analyzeActivityLevel(commits) {
   
   if (recentCommits.length >= 20) {
     level = 'Very Active';
-    description = '매우 활발한 개발 활동이 진행되고 있습니다.';
+    description = 'analysis.activityLevel.veryActiveDesc';
   } else if (recentCommits.length >= 10) {
     level = 'Active';
-    description = '활발한 개발 활동이 진행되고 있습니다.';
+    description = 'analysis.activityLevel.activeDesc';
   } else if (recentCommits.length >= 5) {
     level = 'Moderate';
-    description = '적당한 수준의 개발 활동이 있습니다.';
+    description = 'analysis.activityLevel.moderateDesc';
   } else if (recentCommits.length >= 1) {
     level = 'Low';
-    description = '개발 활동이 적습니다.';
+    description = 'analysis.activityLevel.lowDesc';
   } else {
     level = 'Inactive';
-    description = '최근 개발 활동이 없습니다.';
+    description = 'analysis.activityLevel.inactiveDesc';
   }
   
   return {
@@ -991,8 +1003,8 @@ function generateRecommendations(codeQuality, contributionPattern, activityLevel
   if (codeQuality.score < 40) {
     recommendations.push({
       priority: 'High',
-      title: '코드 품질 개선',
-      description: '더 많은 커밋과 기여자를 유치하여 프로젝트의 활성도를 높이세요.'
+      title: 'analysis.githubFeatures.improveCodeQuality',
+      description: 'analysis.githubFeatures.improveCodeQualityDesc'
     });
   }
   
@@ -1000,8 +1012,8 @@ function generateRecommendations(codeQuality, contributionPattern, activityLevel
   if (contributionPattern.metrics.totalContributors < 2) {
     recommendations.push({
       priority: 'Medium',
-      title: '기여자 확대',
-      description: '다른 개발자들의 참여를 유도하여 프로젝트의 지속가능성을 높이세요.'
+      title: 'analysis.githubFeatures.expandContributors',
+      description: 'analysis.githubFeatures.encourageParticipation'
     });
   }
   
@@ -1009,8 +1021,8 @@ function generateRecommendations(codeQuality, contributionPattern, activityLevel
   if (activityLevel.level === 'Inactive' || activityLevel.level === 'Low') {
     recommendations.push({
       priority: 'High',
-      title: '개발 활동 재개',
-      description: '정기적인 커밋과 업데이트를 통해 프로젝트를 활성화하세요.'
+      title: 'analysis.githubFeatures.resumeDevelopment',
+      description: 'analysis.githubFeatures.resumeDevelopmentDesc'
     });
   }
   
@@ -1019,8 +1031,8 @@ function generateRecommendations(codeQuality, contributionPattern, activityLevel
   if (topContributor && topContributor.percentage > 80) {
     recommendations.push({
       priority: 'Medium',
-      title: '기여도 분산',
-      description: '단일 기여자에 의존하지 않도록 기여를 분산시키세요.'
+      title: 'analysis.githubFeatures.distributeContributions',
+      description: 'analysis.githubFeatures.avoidSingleContributor'
     });
   }
   

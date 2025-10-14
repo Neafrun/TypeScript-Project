@@ -73,16 +73,12 @@ const PremiumFeature = ({ title, description, isLoggedIn, onLoginClick, children
   console.log('🔍 [PremiumFeature] 상태 확인:', {
     title: title,
     isLoggedIn: isLoggedIn,
-    children: children
+    hasChildren: !!children,
+    onLoginClick: typeof onLoginClick
   });
   
   return (
     <PremiumFeatureContainer>
-      <PremiumBadge>
-        <span>✨</span>
-        <span>Premium Feature</span>
-      </PremiumBadge>
-      
       <FeatureTitle>{title}</FeatureTitle>
       <FeatureDescription>{description}</FeatureDescription>
       
@@ -91,7 +87,7 @@ const PremiumFeature = ({ title, description, isLoggedIn, onLoginClick, children
       ) : (
         <LoginPrompt>
           <p style={{ marginBottom: '1rem', opacity: 0.9 }}>
-            이 고급 기능을 사용하려면 GitHub 로그인이 필요합니다.
+            이  기능을 사용하려면 GitHub 로그인이 필요합니다.
           </p>
           <LoginButton onClick={onLoginClick}>
             GitHub로 로그인하기

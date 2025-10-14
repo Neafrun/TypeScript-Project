@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
 
 const Container = styled.div`
@@ -83,6 +84,7 @@ const PullRequestsAnalysis = ({ repoInfo }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (repoInfo) {
@@ -109,11 +111,10 @@ const PullRequestsAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>🔄</Icon>
           <Title>Pull Requests</Title>
         </Header>
-        <Description>최근 PR 활동과 리뷰 패턴을 분석합니다.</Description>
-        <LoadingState>PR 데이터 로딩 중...</LoadingState>
+        <Description>{t('analysis.githubFeatures.pullRequestsDescription')}</Description>
+        <LoadingState>{t('analysis.githubFeatures.loadingPR')}</LoadingState>
       </Container>
     );
   }
@@ -122,10 +123,9 @@ const PullRequestsAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>🔄</Icon>
           <Title>Pull Requests</Title>
         </Header>
-        <Description>최근 PR 활동과 리뷰 패턴을 분석합니다.</Description>
+        <Description>{t('analysis.githubFeatures.pullRequestsDescription')}</Description>
         <ErrorState>{error}</ErrorState>
       </Container>
     );
@@ -137,7 +137,7 @@ const PullRequestsAnalysis = ({ repoInfo }) => {
         <Icon>🔄</Icon>
         <Title>Pull Requests</Title>
       </Header>
-      <Description>최근 PR 활동과 리뷰 패턴을 분석합니다.</Description>
+      <Description>{t('analysis.githubFeatures.pullRequestsDescription')}</Description>
       
       {data && (
         <DataGrid>

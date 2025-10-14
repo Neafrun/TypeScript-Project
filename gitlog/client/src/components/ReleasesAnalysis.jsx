@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
 
 const Container = styled.div`
@@ -83,6 +84,7 @@ const ReleasesAnalysis = ({ repoInfo }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (repoInfo) {
@@ -109,11 +111,10 @@ const ReleasesAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>🏷️</Icon>
           <Title>Releases & Tags</Title>
         </Header>
-        <Description>릴리즈 주기와 버전 관리 패턴을 분석합니다.</Description>
-        <LoadingState>릴리즈 데이터 로딩 중...</LoadingState>
+        <Description>{t('analysis.githubFeatures.releasesDescription')}</Description>
+        <LoadingState>{t('analysis.githubFeatures.loadingReleases')}</LoadingState>
       </Container>
     );
   }
@@ -122,10 +123,9 @@ const ReleasesAnalysis = ({ repoInfo }) => {
     return (
       <Container>
         <Header>
-          <Icon>🏷️</Icon>
           <Title>Releases & Tags</Title>
         </Header>
-        <Description>릴리즈 주기와 버전 관리 패턴을 분석합니다.</Description>
+        <Description>{t('analysis.githubFeatures.releasesDescription')}</Description>
         <ErrorState>{error}</ErrorState>
       </Container>
     );
@@ -134,10 +134,9 @@ const ReleasesAnalysis = ({ repoInfo }) => {
   return (
     <Container>
       <Header>
-        <Icon>🏷️</Icon>
         <Title>Releases & Tags</Title>
       </Header>
-      <Description>릴리즈 주기와 버전 관리 패턴을 분석합니다.</Description>
+      <Description>{t('analysis.githubFeatures.releasesDescription')}</Description>
       
       {data && (
         <DataGrid>
