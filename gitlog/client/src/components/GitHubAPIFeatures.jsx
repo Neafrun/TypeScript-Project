@@ -168,9 +168,9 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
   if (loading) {
     return (
       <GitHubAPIContainer>
-        <SectionTitle>GitHub API 연동 기능</SectionTitle>
+        <SectionTitle>{t('analysis.githubFeatures.githubAPIIntegration')}</SectionTitle>
         <LoadingState>
-          GitHub 데이터를 불러오는 중...
+          {t('analysis.githubFeatures.loadingGitHubData')}
         </LoadingState>
       </GitHubAPIContainer>
     );
@@ -179,7 +179,7 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
   if (error) {
     return (
       <GitHubAPIContainer>
-        <SectionTitle>GitHub API 연동 기능</SectionTitle>
+        <SectionTitle>{t('analysis.githubFeatures.githubAPIIntegration')}</SectionTitle>
         <ErrorState>{error}</ErrorState>
       </GitHubAPIContainer>
     );

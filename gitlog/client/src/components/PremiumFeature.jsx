@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useTranslation } from '../hooks/useTranslation';
 
 const PremiumFeatureContainer = styled.div`
-  background: #f8f9fa;
+  background: #f8f9fa; 
   border: 2px solid #e9ecef;
   border-radius: 12px;
   padding: 1.5rem;
@@ -69,6 +70,8 @@ const LoginButton = styled.button`
 `;
 
 const PremiumFeature = ({ title, description, isLoggedIn, onLoginClick, children }) => {
+  const { t } = useTranslation();
+  
   // 디버깅용 로그
   console.log('🔍 [PremiumFeature] 상태 확인:', {
     title: title,
@@ -87,10 +90,10 @@ const PremiumFeature = ({ title, description, isLoggedIn, onLoginClick, children
       ) : (
         <LoginPrompt>
           <p style={{ marginBottom: '1rem', opacity: 0.9 }}>
-            이  기능을 사용하려면 GitHub 로그인이 필요합니다.
+            {t('analysis.githubFeatures.loginRequired')}
           </p>
           <LoginButton onClick={onLoginClick}>
-            GitHub로 로그인하기
+            {t('analysis.githubFeatures.loginWithGitHub')}
           </LoginButton>
         </LoginPrompt>
       )}

@@ -1823,8 +1823,8 @@ const RepositoryAnalysis = () => {
                 </>
               ) : (
                 <PremiumFeature
-                  title="GitHub API 연동 기능"
-                  description="Pull Requests, Issues, CI/CD 워크플로우, 릴리즈 관리 등 GitHub의 모든 기능을 통합 분석합니다."
+                  title={t('analysis.githubFeatures.githubAPIIntegration')}
+                  description={t('analysis.githubFeatures.githubAPIIntegrationDesc')}
                   isLoggedIn={isLoggedIn}
                   onLoginClick={login}
                 >
