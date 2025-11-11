@@ -11,21 +11,27 @@ require('dotenv').config();
 console.log('🔍 [환경 변수 확인] 서버 시작 시 환경 변수 상태:');
 console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID ? '설정됨' : '❌ 없음');
 console.log('GITHUB_CLIENT_SECRET:', process.env.GITHUB_CLIENT_SECRET ? '설정됨' : '❌ 없음');
+console.log('GITHUB_TOKEN:', process.env.GITHUB_TOKEN ? '설정됨' : '❌ 없음');
 console.log('GITHUB_REDIRECT_URI:', process.env.GITHUB_REDIRECT_URI);
 console.log('JWT_SECRET:', process.env.JWT_SECRET ? '설정됨' : '❌ 없음');
 console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '설정됨' : '❌ 없음');
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '설정됨' : '❌ 없음');
+console.log('GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? '설정됨' : '❌ 없음');
 
 const authRoutes = require('./routes/auth');
 const githubRoutes = require('./routes/github');
 const repositoryRoutes = require('./routes/repository');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // 미들웨어 설정
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -48,6 +54,7 @@ app.use(session({
 app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/repository', repositoryRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 헬스 체크 엔드포인트
 app.get('/api/health', (req, res) => {
@@ -61,7 +68,8 @@ app.get('/api/health', (req, res) => {
 
 // 404 핸들러
 app.use('*', (req, res) => {
-  console.log(`❌ [404 오류] 존재하지 않는 경로에 접근했습니다: ${req.originalUrl}`);
+  console.log(`❌ [404 오류] 존재하지 않는 경로에 접근했습니다: ${req.method} ${req.originalUrl}`);
+  console.log(`❌ [404 오류] 요청 헤더:`, req.headers);
   res.status(404).json({ 
     error: 'Not Found',
     message: `Route ${req.originalUrl} not found`
@@ -95,4 +103,6 @@ app.listen(PORT, () => {
       console.log(`   - GET  /api/repository/commits/:owner/:repo - 커밋 통계`);
       console.log(`   - GET  /api/repository/all-commits/:owner/:repo - 모든 브랜치 커밋`);
       console.log(`   - POST /api/repository/analyze - 레포지토리 분석`);
+      console.log(`   - POST /api/ai/analyze - AI 분석 (인증 필요)`);
+      console.log(`   - POST /api/ai/public/analyze - AI 분석 (공개 레포지토리)`);
 });

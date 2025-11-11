@@ -24,6 +24,7 @@ export const translations = {
       english: 'English',
       switchToKorean: '한국어로 전환',
       switchToEnglish: 'Switch to English',
+      unknown: '알 수 없음',
     },
     
     // 네비게이션
@@ -331,16 +332,61 @@ export const translations = {
 
     // AI 분석
     aiAnalysis: {
-      title: 'AI 분석',
-      subtitle: '인공지능을 활용한 고급 저장소 분석',
-      generateReport: 'AI 리포트 생성',
-      generating: '생성 중...',
-      reportReady: '리포트가 준비되었습니다',
-      insights: 'AI 인사이트',
-      recommendations: '추천사항',
-      codeQuality: '코드 품질',
-      teamPerformance: '팀 성과',
+      title: '🤖 AI 저장소 분석',
+      subtitle: 'ChatGPT를 활용한 GitHub 저장소 분석',
+      enterRepositoryUrl: '저장소 URL 입력',
+      repositoryUrlPlaceholder: 'https://github.com/owner/repository 또는 owner/repository',
+      analyzeWithAI: 'AI로 분석하기',
+      analyzing: '분석 중...',
+      analyzingMessage: '🤖 AI가 저장소를 분석하고 있습니다... 잠시만 기다려주세요.',
+      analysisType: '분석 유형',
+      analysisTypeGeneral: '일반 분석',
+      analysisTypeCodeQuality: '코드 품질',
+      analysisTypeAIFeedback: 'AI 피드백',
+      analysisTypeRepositoryInsights: '레포지토리 분석 & AI 피드백',
+      loginTip: '💡 팁: 비공개 저장소를 분석하고 더 자세한 분석을 받으려면 로그인하세요',
+      errorInvalidUrl: '올바른 GitHub 저장소 URL을 입력해주세요 (예: https://github.com/owner/repo)',
+      errorAnalysisFailed: '저장소 분석에 실패했습니다. URL을 확인하고 다시 시도해주세요.',
+      resultsTitle: 'AI 분석 결과',
+      modelBadge: 'ChatGPT',
+      repositoryInfo: '저장소 정보',
+      stars: '스타',
+      forks: '포크',
+      commits: '커밋',
+      contributors: '기여자',
+      noDescription: '설명이 없습니다',
+      
+      // 코드 품질 분석
+      codeQualityAssessment: '코드 품질 평가',
+      overallScore: '전체 점수',
+      maintainability: '유지보수성',
+      complexity: '복잡도',
+      bestPractices: '베스트 프랙티스',
+      areasForImprovement: '개선 영역',
+      recommendations: '권장사항',
+      summary: '요약',
+      
+      // AI 피드백 분석
+      aiFeedbackAnalysis: 'AI 피드백',
+      positiveAspects: '긍정적인 측면',
+      areasForImprovement: '개선 영역',
+      suggestions: '제안사항',
+      recommendations: '권장사항',
+      feedback: '피드백',
+      
+      // 일반 분석
+      projectOverview: '프로젝트 개요',
       projectHealth: '프로젝트 건강도',
+      activityAnalysis: '활동 분석',
+      collaborationAssessment: '협업 평가',
+      codeQualityInsights: '코드 품질 인사이트',
+      growthPotential: '성장 가능성',
+      
+      // 기타
+      rawResponse: 'AI 분석 (원본 응답)',
+      analyzedAt: '분석 시간',
+      totalCommits: '총 커밋',
+      totalContributors: '총 기여자',
     },
 
 
@@ -493,6 +539,7 @@ export const translations = {
       english: 'English',
       switchToKorean: '한국어로 전환',
       switchToEnglish: 'Switch to English',
+      unknown: 'Unknown',
     },
     
     // Navigation
@@ -800,16 +847,61 @@ export const translations = {
 
     // AI Analysis
     aiAnalysis: {
-      title: 'AI Analysis',
-      subtitle: 'Advanced repository analysis powered by artificial intelligence',
-      generateReport: 'Generate AI Report',
-      generating: 'Generating...',
-      reportReady: 'Report is ready',
-      insights: 'AI Insights',
+      title: '🤖 AI Repository Analysis',
+      subtitle: 'Analyze any GitHub repository with AI-powered insights using ChatGPT',
+      enterRepositoryUrl: 'Enter Repository URL',
+      repositoryUrlPlaceholder: 'https://github.com/owner/repository or owner/repository',
+      analyzeWithAI: 'Analyze with AI',
+      analyzing: 'Analyzing...',
+      analyzingMessage: '🤖 AI is analyzing the repository... This may take a moment.',
+      analysisType: 'Analysis Type',
+      analysisTypeGeneral: 'General Analysis',
+      analysisTypeCodeQuality: 'Code Quality',
+      analysisTypeAIFeedback: 'AI Feedback',
+      analysisTypeRepositoryInsights: 'Repository Insights & AI Feedback',
+      loginTip: '💡 Tip: Login to access private repositories and get more detailed analysis',
+      errorInvalidUrl: 'Please enter a valid GitHub repository URL (e.g., https://github.com/owner/repo)',
+      errorAnalysisFailed: 'Failed to analyze repository. Please check the URL and try again.',
+      resultsTitle: 'AI Analysis Results',
+      modelBadge: 'ChatGPT',
+      repositoryInfo: 'Repository Information',
+      stars: 'Stars',
+      forks: 'Forks',
+      commits: 'Commits',
+      contributors: 'Contributors',
+      noDescription: 'No description available',
+      
+      // Code Quality Analysis
+      codeQualityAssessment: 'Code Quality Assessment',
+      overallScore: 'Overall Score',
+      maintainability: 'Maintainability',
+      complexity: 'Complexity',
+      bestPractices: 'Best Practices',
+      areasForImprovement: 'Areas for Improvement',
       recommendations: 'Recommendations',
-      codeQuality: 'Code Quality',
-      teamPerformance: 'Team Performance',
+      summary: 'Summary',
+      
+      // AI Feedback Analysis
+      aiFeedbackAnalysis: 'AI Feedback',
+      positiveAspects: 'Positive Aspects',
+      areasForImprovement: 'Areas for Improvement',
+      suggestions: 'Suggestions',
+      recommendations: 'Recommendations',
+      feedback: 'Feedback',
+      
+      // General Analysis
+      projectOverview: 'Project Overview',
       projectHealth: 'Project Health',
+      activityAnalysis: 'Activity Analysis',
+      collaborationAssessment: 'Collaboration Assessment',
+      codeQualityInsights: 'Code Quality Insights',
+      growthPotential: 'Growth Potential',
+      
+      // Other
+      rawResponse: 'AI Analysis (Raw Response)',
+      analyzedAt: 'Analyzed At',
+      totalCommits: 'Total Commits',
+      totalContributors: 'Total Contributors',
     },
 
 

@@ -29,8 +29,10 @@ const callGitHubAPI = async (url, accessToken) => {
       'User-Agent': 'GitLog-App'
     };
     
-    if (accessToken) {
-      headers['Authorization'] = `token ${accessToken}`;
+    // accessToken이 없으면 환경 변수의 GITHUB_TOKEN 사용
+    const token = accessToken || process.env.GITHUB_TOKEN;
+    if (token) {
+      headers['Authorization'] = `token ${token}`;
     }
     
     const response = await axios.get(url, { headers });
@@ -50,7 +52,7 @@ router.get('/public/info/:owner/:repo', async (req, res) => {
 
     const repoData = await callGitHubAPI(
       `https://api.github.com/repos/${owner}/${repo}`,
-      null // 토큰 없이 공개 API 사용
+      null // 환경 변수의 GITHUB_TOKEN 자동 사용
     );
 
     console.log(`📥 [공개 레포지토리 정보] ${owner}/${repo} 정보를 성공적으로 가져왔습니다`);
@@ -194,7 +196,7 @@ router.get('/public/commits/:owner/:repo', async (req, res) => {
 
     const statsData = await callGitHubAPI(
       `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
-      null // 토큰 없이 공개 API 사용
+      null // 환경 변수의 GITHUB_TOKEN 자동 사용
     );
 
     // statsData가 배열인지 확인
@@ -328,7 +330,7 @@ router.get('/public/recent-commits/:owner/:repo', async (req, res) => {
 
     const commitsData = await callGitHubAPI(
       `https://api.github.com/repos/${owner}/${repo}/commits?per_page=${per_page}&page=${page}`,
-      null // 토큰 없이 공개 API 사용
+      null // 환경 변수의 GITHUB_TOKEN 자동 사용
     );
 
     console.log(`📥 [공개 최근 커밋] ${owner}/${repo} 최근 커밋을 성공적으로 가져왔습니다: ${commitsData.length}개`);
@@ -383,7 +385,7 @@ router.get('/public/all-commits/:owner/:repo', async (req, res) => {
     // 1. 모든 브랜치 가져오기
     const branchesData = await callGitHubAPI(
       `https://api.github.com/repos/${owner}/${repo}/branches`,
-      null // 토큰 없이 공개 API 사용
+      null // 환경 변수의 GITHUB_TOKEN 자동 사용
     );
 
     console.log(`📥 [브랜치 목록] ${branchesData.length}개 브랜치를 찾았습니다`);
@@ -404,7 +406,7 @@ router.get('/public/all-commits/:owner/:repo', async (req, res) => {
         // 타임아웃 설정을 위한 Promise.race 사용
         const commitsPromise = callGitHubAPI(
           `https://api.github.com/repos/${owner}/${repo}/commits?sha=${branch.name}&per_page=50`, // 페이지 크기 줄임
-          null // 토큰 없이 공개 API 사용
+          null // 환경 변수의 GITHUB_TOKEN 자동 사용
         );
 
         const timeoutPromise = new Promise((_, reject) => 
@@ -421,7 +423,7 @@ router.get('/public/all-commits/:owner/:repo', async (req, res) => {
         try {
           const protectionPromise = callGitHubAPI(
             `https://api.github.com/repos/${owner}/${repo}/branches/${branch.name}/protection`,
-            null // 토큰 없이 공개 API 사용
+            null // 환경 변수의 GITHUB_TOKEN 자동 사용
           );
           const protectionTimeout = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('보호 상태 확인 타임아웃')), 5000)
