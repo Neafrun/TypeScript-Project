@@ -1,3 +1,28 @@
+# 코드 수정 후 
+    cd client
+   npm run build
+   ```
+   → `postbuild`가 `server/public`으로 자동 복사
+4. **루트로 돌아와 커밋 & 푸시**
+   ```
+   cd ..
+   git status
+   git add .
+   git commit -m "메시지"
+   git push origin <브랜치>
+   ```
+5. **Render에서 재배포**
+   - `Manual Deploy → Clear build cache & deploy` 선택 (새 빌드 강제)
+6. **배포 완료 후 테스트** (로그, 기능 점검)
+
+### 추가 팁
+- `npm run build` 후 `server/public`에 결과물이 들어갔는지 가끔 확인하세요.
+- 환경 변수 변경이 필요하면 Render에서 먼저 수정 → 저장 → `Clear build cache & deploy`.
+- 프런트만 수정한 경우에도 반드시 빌드 후 커밋/푸시가 있어야 Render가 새 빌드를 가져옵니다.
+- 백엔드만 수정했다면 `client` 빌드는 필요 없지만, `server` 수정분 커밋·푸시 후 그대로 재배포하면 됩니다.
+
+이 흐름으로 작업하시면 매번 최신 코드가 배포됩니다.
+
 # GitLog
 
 GitHub 저장소 분석을 위한 강력한 도구입니다. AI를 활용한 코드 품질 분석과 기여자 인사이트를 제공합니다.
