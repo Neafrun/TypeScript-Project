@@ -27,9 +27,31 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_BUILD_PATH = path.join(__dirname, 'public');
 
+const baseOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  process.env.CLIENT_URL,
+  process.env.RENDER_EXTERNAL_URL,
+  process.env.RENDER_INTERNAL_HOSTNAME ? `https://${process.env.RENDER_INTERNAL_HOSTNAME}` : null
+].filter(Boolean).map(origin => origin.replace(/\/$/, ''));
+
 // 미들웨어 설정
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'],
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const sanitizedOrigin = origin.replace(/\/$/, '');
+    if (baseOrigins.includes(sanitizedOrigin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`⚠️ [CORS] 허용되지 않은 Origin에서 요청이 들어왔습니다: ${origin}. 임시로 허용합니다.`);
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

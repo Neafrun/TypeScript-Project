@@ -6,7 +6,8 @@ const router = express.Router();
 // 환경 변수
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost:3000/callback';
+const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
+const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/$/, '');
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret';
 
 // 환경 변수 디버깅
@@ -15,6 +16,7 @@ console.log('GITHUB_CLIENT_ID:', GITHUB_CLIENT_ID ? '설정됨' : '❌ 없음');
 console.log('GITHUB_CLIENT_SECRET:', GITHUB_CLIENT_SECRET ? '설정됨' : '❌ 없음');
 console.log('GITHUB_REDIRECT_URI:', GITHUB_REDIRECT_URI);
 console.log('JWT_SECRET:', JWT_SECRET ? '설정됨' : '❌ 없음');
+console.log('CLIENT_URL:', CLIENT_URL);
 
 // GitHub OAuth 시작
 router.get('/github', (req, res) => {
@@ -167,7 +169,7 @@ router.get('/callback', async (req, res) => {
     });
     
     // 프론트엔드로 리다이렉트 (토큰을 URL 파라미터로 전달)
-    const frontendUrl = `http://localhost:3000/callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(responseData))}`;
+    const frontendUrl = `${CLIENT_URL}/callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(responseData))}`;
     console.log('🏠 [리다이렉트] 프론트엔드로 리다이렉트합니다:', frontendUrl);
     res.redirect(frontendUrl);
     
