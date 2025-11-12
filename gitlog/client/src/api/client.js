@@ -1,6 +1,18 @@
-// API 기본 URL - 직접 하드코딩 (프록시 문제 해결)
-// 제거하려면: 프록시를 사용하도록 원래 코드로 복원하세요
-const API_BASE_URL = 'http://localhost:5000';
+// API 기본 URL - 배포 환경에서는 동일 도메인 기준으로 동작하도록 설정
+const getApiBaseUrl = () => {
+  if (typeof window === 'undefined') {
+    return process.env.REACT_APP_API_URL || '';
+  }
+
+  const envUrl = process.env.REACT_APP_API_URL;
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl.replace(/\/$/, '');
+  }
+
+  return window.location.origin;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // API 기본 URL 확인 로그
 console.log('🔧 [API] API 기본 URL 설정:', API_BASE_URL);

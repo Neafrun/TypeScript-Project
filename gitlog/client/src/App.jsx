@@ -16,6 +16,7 @@ import AIAnalysis from './pages/AIAnalysis';
 import RepositoryAnalysis from './pages/RepositoryAnalysis';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import { API_BASE_URL } from './api/client';
 
 // API 경로 리다이렉트 컴포넌트
 const APIRedirect = () => {
@@ -23,7 +24,7 @@ const APIRedirect = () => {
   
   useEffect(() => {
     // 현재 경로를 백엔드 서버로 리다이렉트
-    const backendUrl = `http://localhost:5000${location.pathname}${location.search}`;
+    const backendUrl = `${API_BASE_URL}${location.pathname}${location.search}`;
     window.location.href = backendUrl;
   }, [location]);
 

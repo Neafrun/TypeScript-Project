@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
+import { API_BASE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -190,8 +191,9 @@ const Login = () => {
     setTimeout(() => setIsLoading(false), 2000);
     
     try {
-      // 직접 백엔드 서버로 리다이렉트 (프록시 우회)
-      window.location.href = 'http://localhost:5000/api/auth/github';
+      // 배포 환경에서도 동작하도록 API 기본 URL 활용
+      const loginUrl = `${API_BASE_URL}/api/auth/github`;
+      window.location.href = loginUrl;
     } catch (error) {
       console.error('로그인 오류:', error);
       setIsLoading(false);
