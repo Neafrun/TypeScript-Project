@@ -2,14 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
-import PremiumFeature from '../components/PremiumFeature';
-import AdvancedAnalysis from '../components/AdvancedAnalysis';
-import GitHubAPIFeatures from '../components/GitHubAPIFeatures';
 import PullRequestsAnalysis from '../components/PullRequestsAnalysis';
 import IssuesAnalysis from '../components/IssuesAnalysis';
 import WorkflowsAnalysis from '../components/WorkflowsAnalysis';
 import ReleasesAnalysis from '../components/ReleasesAnalysis';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiGet, apiPost } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
@@ -83,7 +79,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #28a745;
+    border-color: #ff6b35;
   }
 
   &::placeholder {
@@ -92,7 +88,7 @@ const Input = styled.input`
 `;
 
 const AnalyzeButton = styled.button`
-  background: #28a745;
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
   color: white;
   border: none;
   padding: 1rem 2rem;
@@ -100,15 +96,21 @@ const AnalyzeButton = styled.button`
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
 
   &:hover {
-    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.35);
+    filter: brightness(1.05);
   }
 
   &:disabled {
-    background: #6c757d;
+    background: #f97316;
+    box-shadow: none;
     cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
   }
 `;
 
@@ -136,7 +138,7 @@ const Spinner = styled.div`
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #28a745;
+  border-top: 4px solid #ff6b35;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
@@ -177,6 +179,13 @@ const MetricCard = styled.div`
   border-radius: 8px;
   padding: 1rem;
   border-left: 4px solid ${props => props.color || '#28a745'};
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: ${props => (props.onClick ? 'pointer' : 'default')};
+
+  &:hover {
+    transform: ${props => (props.onClick ? 'translateY(-3px)' : 'none')};
+    box-shadow: ${props => (props.onClick ? '0 10px 18px rgba(0, 0, 0, 0.1)' : 'none')};
+  }
 `;
 
 const MetricTitle = styled.h3`
@@ -249,30 +258,126 @@ const ContributorStats = styled.div`
   color: #586069;
 `;
 
-const ChartContainer = styled.div`
+const ChatSection = styled.div`
+  margin-top: 2.5rem;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
-  padding: 2.5rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  margin-bottom: 2rem;
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2rem;
+  box-shadow: 0 12px 30px rgba(255, 107, 53, 0.18);
+  border: 1px solid rgba(255, 140, 66, 0.2);
 `;
 
-const ChartTitle = styled.h3`
-  font-size: 1.8rem;
+const ChatHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+`;
+
+const ChatTitle = styled.h2`
+  margin: 0;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #2c3e50;
-  margin-bottom: 0.5rem;
-  text-align: center;
+  color: #7c2d12;
 `;
 
-const ChartSubtitle = styled.p`
-  font-size: 1.1rem;
-  color: #7f8c8d;
-  text-align: center;
-  margin-bottom: 2rem;
-  font-style: italic;
+const ChatDescription = styled.p`
+  margin: 0;
+  font-size: 0.95rem;
+  color: #88492b;
+  opacity: 0.85;
+`;
+
+const ChatMessages = styled.div`
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-right: 0.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const ChatMessage = styled.div`
+  background: linear-gradient(135deg, rgba(255, 227, 215, 0.9) 0%, rgba(255, 211, 188, 0.9) 100%);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 140, 66, 0.25);
+`;
+
+const ChatMessageHeader = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const ChatAuthor = styled.span`
+  font-weight: 700;
+  color: #7c2d12;
+`;
+
+const ChatTimestamp = styled.span`
+  font-size: 0.8rem;
+  color: #a16207;
+`;
+
+const ChatText = styled.p`
+  margin: 0;
+  color: #4a2704;
+  line-height: 1.6;
+  white-space: pre-wrap;
+`;
+
+const ChatForm = styled.form`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const ChatInput = styled.textarea`
+  min-height: 90px;
+  border: 2px solid rgba(255, 140, 66, 0.35);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  resize: vertical;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #1f2937;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.15);
+  }
+`;
+
+const ChatSubmitButton = styled.button`
+  justify-self: flex-end;
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.6rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.4);
+    filter: brightness(1.05);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const PriorityBadge = styled.span`
@@ -428,6 +533,8 @@ const RepositoryAnalysis = () => {
   const [itemsPerPage] = useState(10);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [showBranchModal, setShowBranchModal] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
   
   // URL 파라미터에서 레포지토리 정보 가져오기
   useEffect(() => {
@@ -461,6 +568,10 @@ const RepositoryAnalysis = () => {
   const isLoggedIn = !!user;
   const analysisData = analysis;
   const repoInfo = repositoryUrl ? parseRepositoryUrl(repositoryUrl) : null;
+  const currentRepoKey = repoInfo ? `${repoInfo.owner}/${repoInfo.repo}` : null;
+  const filteredChatMessages = currentRepoKey
+    ? chatMessages.filter((message) => message.repo === currentRepoKey)
+    : [];
   
   // 디버깅용 로그
   console.log('🔍 [RepositoryAnalysis] 로그인 상태 확인:', {
@@ -478,6 +589,47 @@ const RepositoryAnalysis = () => {
     metricsDistribution: analysis?.contributionPattern?.metrics?.distribution // 기존 경로도 확인
   });
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem('gitlog_repo_chat_messages');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setChatMessages(parsed);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ [RepositoryAnalysis] 채팅 기록 로드 실패:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('gitlog_repo_chat_messages', JSON.stringify(chatMessages));
+    } catch (error) {
+      console.warn('⚠️ [RepositoryAnalysis] 채팅 기록 저장 실패:', error);
+    }
+  }, [chatMessages]);
+
+  const handleChatSubmit = (event) => {
+    event.preventDefault();
+    if (!chatInput.trim() || !currentRepoKey) {
+      return;
+    }
+
+    const newMessage = {
+      id: Date.now(),
+      repo: currentRepoKey,
+      author: user?.login || 'Guest',
+      text: chatInput.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    setChatMessages((prev) => [newMessage, ...prev].slice(0, 200));
+    setChatInput('');
+  };
 
   // 차트 데이터 생성 함수 - 개선된 코드 품질 기반 평가
   const generateChartData = (contributors) => {
@@ -971,216 +1123,18 @@ const RepositoryAnalysis = () => {
 
           {analysis && (
             <>
-              {/* 코드 품질 차트 */}
-              <ChartContainer>
-                <ChartTitle>{t('analysis.codeQualityScore')}</ChartTitle>
-                <ChartSubtitle>Contributor-wise code quality assessment</ChartSubtitle>
-                {(() => {
-                  // 두 경로 모두 확인하여 데이터 찾기
-                  const contributors = analysis.contributionPattern?.distribution || 
-                                    analysis.contributionPattern?.metrics?.distribution || [];
-                  const chartData = generateChartData(contributors);
-                  console.log('🔍 [Chart] 사용할 기여자 데이터:', contributors);
-                  
-                  if (chartData.length === 0) {
-                    return (
-                      <div style={{ 
-                        height: '400px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        color: '#666',
-                        fontSize: '16px'
-                      }}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-                        <div>{t('analysis.noContributorData')}</div>
-                        <div style={{ fontSize: '14px', marginTop: '8px', color: '#999' }}>
-                          {t('analysis.checkCommitHistory')}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <ResponsiveContainer width="100%" height={400}>
-                  <BarChart
-                    data={(() => {
-                      const contributors = analysis.contributionPattern?.distribution || 
-                                        analysis.contributionPattern?.metrics?.distribution || [];
-                      const chartData = generateChartData(contributors);
-                      console.log('🎯 [BarChart] 렌더링할 데이터:', chartData);
-                      return chartData;
-                    })()}
-                    margin={{ top: 20, right: 30, left: 60, bottom: 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis
-                      dataKey="name"
-                      hide={true}
-                    />
-                    <YAxis
-                      label={{ value: t('analysis.chart.qualityScore'), angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '14px', fill: '#666' } }}
-                      domain={[0, 100]}
-                      stroke="#666"
-                      tick={{ fontSize: 12 }}
-                      tickCount={6}
-                    />
-                    <Tooltip
-                      formatter={(value, name) => [
-                        `${value} ${t('analysis.chart.points')}`,
-                        t('analysis.chart.codeQualityScore')
-                      ]}
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #ccc',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    />
-                    <Bar 
-                      dataKey="qualityScore" 
-                      name="qualityScore" 
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {(() => {
-                        const contributors = analysis.contributionPattern?.distribution || 
-                                          analysis.contributionPattern?.metrics?.distribution || [];
-                        return generateChartData(contributors);
-                      })().map((entry, index) => {
-                        const score = entry.qualityScore;
-                        let color = '#9E9E9E'; // 기본 회색
-                        
-                        if (score >= 80) color = '#4CAF50'; // 초록색 (80-100점)
-                        else if (score >= 60) color = '#2196F3'; // 파란색 (60-79점)
-                        else if (score >= 40) color = '#FF9800'; // 주황색 (40-59점)
-                        else if (score >= 20) color = '#FF5722'; // 빨간색 (20-39점)
-                        
-                        return <Cell key={`cell-${index}`} fill={color} />;
-                      })}
-                    </Bar>
-                  </BarChart>
-                    </ResponsiveContainer>
-                  );
-                })()}
-                
-                {/* 점수별 색상 범례 */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center',
-                  marginTop: '20px',
-                  gap: '20px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#4CAF50', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points80to100')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#2196F3', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points60to79')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#FF9800', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points40to59')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#FF5722', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points20to39')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#9E9E9E', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '11px', color: '#666' }}>{t('analysis.chart.points0to19')}</span>
-                  </div>
-                </div>
-
-                {/* {t('analysis.chart.contributorProfiles')} */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-around', 
-                  alignItems: 'center',
-                  marginTop: '20px',
-                  padding: '0 20px'
-                }}>
-                  {generateChartData(analysis.contributionPattern?.metrics?.distribution || []).map((contributor, index) => {
-                    if (!contributor) return null; // 안전성 검사
-                    
-                    return (
-                    <div key={`contributor-${index}`} style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center',
-                      minWidth: '80px'
-                    }}>
-                      {contributor.avatar ? (
-                        <img 
-                          src={contributor.avatar} 
-                          alt={contributor.name || `User ${index + 1}`}
-                          style={{ 
-                            width: '40px', 
-                            height: '40px', 
-                            borderRadius: '50%',
-                            marginBottom: '8px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                          }} 
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        borderRadius: '50%', 
-                        backgroundColor: '#6c757d', 
-                        display: contributor.avatar ? 'none' : 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        marginBottom: '8px',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: 'white',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                        }}>
-                          {(contributor.name || 'U').charAt(0).toUpperCase()}
-                        </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          fontWeight: '600',
-                          color: '#333',
-                          marginBottom: '2px'
-                        }}>
-                          {contributor.name || `User ${index + 1}`}
-                        </div>
-                        <div style={{ 
-                          fontSize: '10px', 
-                          color: '#666',
-                          fontWeight: '500'
-                        }}>
-                          {contributor.qualityScore} points
-                        </div>
-                      </div>
-                    </div>
-                    );
-                  })}
-                </div>
-              </ChartContainer>
-
               <ResultsCard>
                 <SectionTitle>{t('analysis.analysisResults')}: {analysis.repository.full_name}</SectionTitle>
               
-              <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
-              <div style={{ 
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
-                borderRadius: '16px', 
-                padding: '2rem', 
-                marginBottom: '2rem',
-                border: '1px solid #dee2e6',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}>
-                <h4 style={{ margin: '0 0 1.5rem 0', color: '#2c3e50', fontSize: '1.3rem', fontWeight: '600' }}>{t('analysis.advancedCodeQualityAssessment')}</h4>
+                <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
+                  borderRadius: '16px', 
+                  padding: '2rem', 
+                  marginBottom: '2rem',
+                  border: '1px solid #dee2e6',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', fontSize: '0.95rem' }}>
                   <div style={{ 
                     background: 'linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%)',
@@ -1269,745 +1223,519 @@ const RepositoryAnalysis = () => {
                       </div>
                     </div>
                   </div>
-                  
                   <div style={{ marginBottom: '2rem' }}>
                     <h4 style={{ margin: '0 0 1.5rem 0', color: '#2c3e50', fontSize: '1.3rem', fontWeight: '600' }}>
                       Branch Quality Scores
                     </h4>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                      gap: '1.5rem' 
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                      gap: '1.5rem'
                     }}>
                       {analysis.branchStats.map((branch, index) => {
-                        // 브랜치 객체 유효성 검사
-                        if (!branch) {
-                          return null;
-                        }
-                        
-                        // 브랜치별 품질 점수 계산 (더 세분화된 알고리즘)
-                        const branchCommits = analysis.contributionPattern?.metrics?.distribution?.filter(
-                          contributor => contributor.weeks && contributor.weeks.length > 0
-                        )?.length || 0;
-                        
-                        // 각 평가 기준별 점수 계산
-                        let qualityBreakdown = {
-                          commitQuality: 0,        // 커밋 품질 (30점)
-                          codeMaintainability: 0,  // 코드 유지보수성 (25점)
-                          collaborationPattern: 0, // 협업 패턴 (25점)
-                          developmentConsistency: 0 // 개발 일관성 (20점)
+                        if (!branch) return null;
+
+                        const score = Math.min(100, Math.max(0, Math.round((branch.commitCount / Math.max(1, analysis.totalCommits || 100)) * 100)));
+                        const color =
+                          score >= 80 ? '#4CAF50' :
+                          score >= 60 ? '#2196F3' :
+                          score >= 40 ? '#FF9800' :
+                          '#FF5722';
+
+                        const handleCardKeyDown = (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleBranchClick(branch);
+                          }
                         };
-                        
-                        // 1. 커밋 품질 점수 (30점 만점)
-                        if (branch.commitCount >= 15 && branch.commitCount <= 80) {
-                          qualityBreakdown.commitQuality = 30; // 이상적인 범위
-                        } else if (branch.commitCount >= 10 && branch.commitCount <= 120) {
-                          qualityBreakdown.commitQuality = 25; // 양호한 범위
-                        } else if (branch.commitCount >= 5 && branch.commitCount <= 200) {
-                          qualityBreakdown.commitQuality = 20; // 보통 범위
-                        } else if (branch.commitCount >= 1 && branch.commitCount <= 300) {
-                          qualityBreakdown.commitQuality = 15; // 허용 가능
-                        } else if (branch.commitCount > 0) {
-                          qualityBreakdown.commitQuality = 10; // 최소 점수
-                        }
-                        
-                        // 2. 코드 유지보수성 점수 (25점 만점)
-                        // 브랜치 이름과 커밋 패턴으로 유지보수성 평가
-                        const branchName = (branch.name || branch.branch || '').toLowerCase();
-                        if (branchName.includes('main') || branchName.includes('master')) {
-                          qualityBreakdown.codeMaintainability = 25; // 메인 브랜치
-                        } else if (branchName.includes('develop') || branchName.includes('dev')) {
-                          qualityBreakdown.codeMaintainability = 22; // 개발 브랜치
-                        } else if (branchName.includes('feature') || branchName.includes('feat')) {
-                          qualityBreakdown.codeMaintainability = 20; // 기능 브랜치
-                        } else if (branchName.includes('bugfix') || branchName.includes('hotfix')) {
-                          qualityBreakdown.codeMaintainability = 18; // 버그 수정 브랜치
-                        } else if (branchName.includes('test') || branchName.includes('temp')) {
-                          qualityBreakdown.codeMaintainability = 10; // 테스트/임시 브랜치
-                        } else {
-                          qualityBreakdown.codeMaintainability = 15; // 기타 브랜치
-                        }
-                        
-                        // 3. 협업 패턴 점수 (25점 만점)
-                        // 기여자 수와 커밋 분산도로 평가
-                        const contributorCount = branchCommits;
-                        if (contributorCount >= 3) {
-                          qualityBreakdown.collaborationPattern = 25; // 팀 협업 우수
-                        } else if (contributorCount >= 2) {
-                          qualityBreakdown.collaborationPattern = 20; // 협업 양호
-                        } else if (contributorCount >= 1) {
-                          qualityBreakdown.collaborationPattern = 15; // 개인 작업
-                        } else {
-                          qualityBreakdown.collaborationPattern = 5; // 협업 없음
-                        }
-                        
-                        // 4. 개발 일관성 점수 (20점 만점)
-                        // 브랜치 생성일과 활동 패턴으로 평가
-                        const branchAge = branch.commitCount > 0 ? Math.min(branch.commitCount / 10, 1) : 0;
-                        const consistencyScore = Math.round(branchAge * 20);
-                        qualityBreakdown.developmentConsistency = Math.max(5, consistencyScore);
-                        
-                        // 총 품질 점수 계산
-                        let branchQualityScore = Object.values(qualityBreakdown).reduce((sum, score) => sum + score, 0);
-                        
-                        // 브랜치 보호 여부에 따른 추가 점수
-                        if (branch.branchProtected) branchQualityScore += 20;
-                        
-                        // 기여자 다양성 점수
-                        const contributorDiversity = Math.min(30, branchCommits * 3);
-                        branchQualityScore += contributorDiversity;
-                        
-                        branchQualityScore = Math.min(100, branchQualityScore);
-                        
-                        const branchDisplayName = branch.name || branch.branch || `branch-${index}`;
-                        const isMainBranch = branchDisplayName === 'main' || branchDisplayName === 'master';
-                        const isDevelopBranch = branchDisplayName === 'develop' || branchDisplayName === 'dev';
-                        
+
                         return (
-                          <div key={index} 
+                          <MetricCard
+                            key={index}
+                            color={color}
                             onClick={() => handleBranchClick(branch)}
-                            style={{
-                              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-                              borderRadius: '16px',
-                              padding: '1.5rem',
-                              border: `2px solid ${
-                                branchQualityScore >= 80 ? '#4CAF50' :
-                                branchQualityScore >= 60 ? '#2196F3' :
-                                branchQualityScore >= 40 ? '#FF9800' :
-                                branchQualityScore >= 20 ? '#FF5722' : '#9E9E9E'
-                              }`,
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                              position: 'relative',
-                              overflow: 'hidden',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-4px)';
-                              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={handleCardKeyDown}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginBottom: '1rem'
                             }}>
-                            {(isMainBranch || isDevelopBranch) && (
-                              <div style={{
-                                position: 'absolute',
-                                top: '0.5rem',
-                                right: '0.5rem',
-                                background: isMainBranch ? '#4CAF50' : '#2196F3',
-                                color: 'white',
-                                padding: '0.25rem 0.75rem',
-                                borderRadius: '12px',
-                                fontSize: '0.8rem',
-                                fontWeight: '600'
-                              }}>
-                                {isMainBranch ? 'MAIN' : 'DEVELOP'}
+                              <div>
+                                <MetricTitle style={{ marginBottom: '0.25rem' }}>{branch.branch}</MetricTitle>
+                                <MetricValue>{score}/100</MetricValue>
                               </div>
-                            )}
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
                               <div style={{
-                                width: '12px',
-                                height: '12px',
+                                width: '48px',
+                                height: '48px',
                                 borderRadius: '50%',
-                                backgroundColor: branchQualityScore >= 80 ? '#4CAF50' :
-                                               branchQualityScore >= 60 ? '#2196F3' :
-                                               branchQualityScore >= 40 ? '#FF9800' :
-                                               branchQualityScore >= 20 ? '#FF5722' : '#9E9E9E',
-                                marginRight: '0.75rem'
-                              }}></div>
-                              <h5 style={{ 
-                                margin: 0, 
-                                fontSize: '1.1rem', 
-                                fontWeight: '600',
-                                color: '#2c3e50'
-                              }}>
-                                {branchDisplayName}
-                              </h5>
-                            </div>
-                            
-                            <div style={{ marginBottom: '1rem' }}>
-                              <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
+                                background: color,
+                                display: 'flex',
                                 alignItems: 'center',
-                                marginBottom: '0.5rem'
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontWeight: 'bold'
                               }}>
-                                <span style={{ fontSize: '0.9rem', color: '#666' }}>{t('analysis.qualityScore')}</span>
-                                <span style={{ 
-                                  fontSize: '1.2rem', 
-                                  fontWeight: 'bold',
-                                  color: branchQualityScore >= 80 ? '#4CAF50' :
-                                         branchQualityScore >= 60 ? '#2196F3' :
-                                         branchQualityScore >= 40 ? '#FF9800' :
-                                         branchQualityScore >= 20 ? '#FF5722' : '#9E9E9E'
-                                }}>
-                                  {branchQualityScore}/100
-                                </span>
-                              </div>
-                              <div style={{
-                                width: '100%',
-                                height: '8px',
-                                backgroundColor: '#e0e0e0',
-                                borderRadius: '4px',
-                                overflow: 'hidden'
-                              }}>
-                                <div style={{
-                                  width: `${branchQualityScore}%`,
-                                  height: '100%',
-                                  background: `linear-gradient(90deg, ${
-                                    branchQualityScore >= 80 ? '#4CAF50' :
-                                    branchQualityScore >= 60 ? '#2196F3' :
-                                    branchQualityScore >= 40 ? '#FF9800' :
-                                    branchQualityScore >= 20 ? '#FF5722' : '#9E9E9E'
-                                  }, ${
-                                    branchQualityScore >= 80 ? '#66BB6A' :
-                                    branchQualityScore >= 60 ? '#42A5F5' :
-                                    branchQualityScore >= 40 ? '#FFB74D' :
-                                    branchQualityScore >= 20 ? '#EF5350' : '#BDBDBD'
-                                  })`,
-                                  transition: 'width 0.3s ease'
-                                }}></div>
+                                #{index + 1}
                               </div>
                             </div>
-                            
-                            {/* 세부 점수 표시 */}
-                            <div style={{ 
-                              marginBottom: '1rem',
-                              padding: '0.75rem',
-                              backgroundColor: '#f8f9fa',
-                              borderRadius: '8px',
-                              border: '1px solid #e9ecef'
-                            }}>
-                              <div style={{ 
-                                fontSize: '0.8rem', 
-                                fontWeight: '600', 
-                                color: '#495057',
-                                marginBottom: '0.5rem',
-                                textAlign: 'center'
-                              }}>
-                                📊 {t('analysis.branchQuality.detailedEvaluationCriteria')}
+                            <div style={{ color: '#555', lineHeight: 1.5, fontSize: '0.9rem' }}>
+                              <div>
+                                <strong>{t('analysis.commitCount')}</strong>: {branch.commitCount}
                               </div>
-                              <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: '1fr 1fr', 
-                                gap: '0.5rem',
-                                fontSize: '0.75rem'
-                              }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.commitQuality')}</span>
-                                  <span style={{ fontWeight: '600', color: '#28a745' }}>
-                                    {qualityBreakdown.commitQuality}/30
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.maintainability')}</span>
-                                  <span style={{ fontWeight: '600', color: '#007bff' }}>
-                                    {qualityBreakdown.codeMaintainability}/25
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.collaborationPattern')}</span>
-                                  <span style={{ fontWeight: '600', color: '#ffc107' }}>
-                                    {qualityBreakdown.collaborationPattern}/25
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#666' }}>{t('analysis.branchQuality.developmentConsistency')}</span>
-                                  <span style={{ fontWeight: '600', color: '#17a2b8' }}>
-                                    {qualityBreakdown.developmentConsistency}/20
-                                  </span>
-                                </div>
+                              <div>
+                                <strong>{t('analysis.activityLevel')}</strong>: {branch.commitCount > 50 ? t('analysis.veryActive') : branch.commitCount > 20 ? t('analysis.active') : branch.commitCount > 10 ? t('analysis.moderate') : t('analysis.low')}
                               </div>
+                              <div>
+                                <strong>{t('analysis.isProtected')}</strong>: {branch.branchProtected ? t('analysis.protected') : t('analysis.open')}
+                              </div>
+                              {branch.branchProtected && (
+                                <div style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '0.5rem' }}>
+                                  Protected
+                                </div>
+                              )}
                             </div>
-                            
-                            <div style={{ 
-                              display: 'grid', 
-                              gridTemplateColumns: '1fr 1fr', 
-                              gap: '0.75rem',
-                              fontSize: '0.85rem'
-                            }}>
-                              <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontWeight: '600', color: '#2c3e50' }}>
-                                  {branch.commitCount}
-                                </div>
-                                <div style={{ color: '#666' }}>{t('analysis.commits')}</div>
-                              </div>
-                              <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontWeight: '600', color: '#2c3e50' }}>
-                                  {branch.branchProtected ? t('analysis.protected') : t('analysis.open')}
-                                </div>
-                                <div style={{ color: '#666' }}>
-                                  {branch.branchProtected ? t('analysis.protected') : t('analysis.open')}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          </MetricCard>
                         );
                       })}
                     </div>
                   </div>
                 </>
-              ) : (
-                <MetricGrid>
-                  <MetricCard color={(analysis.codeQuality?.score || 0) >= 80 ? '#28a745' : (analysis.codeQuality?.score || 0) >= 60 ? '#ffc107' : '#dc3545'}>
-                    <MetricTitle>{t('analysis.overallQualityScore')}</MetricTitle>
-                    <MetricValue>{analysis.codeQuality?.score || 0}/100</MetricValue>
-                  </MetricCard>
-                  <MetricCard>
-                    <MetricTitle>{t('analysis.qualityLevel')}</MetricTitle>
-                    <MetricValue>{analysis.codeQuality?.level || t('analysis.analyzing')}</MetricValue>
-                  </MetricCard>
-                  <MetricCard>
-                    <MetricTitle>{t('analysis.totalCommits')}</MetricTitle>
-                    <MetricValue>{analysis.codeQuality?.metrics?.totalCommits || 0}</MetricValue>
-                  </MetricCard>
-                  <MetricCard>
-                    <MetricTitle>{t('analysis.contributors')}</MetricTitle>
-                    <MetricValue>{analysis.codeQuality?.metrics?.contributorsCount || 0}</MetricValue>
-                  </MetricCard>
-                </MetricGrid>
-              )}
+              ) : null}
 
               <SectionTitle>{t('analysis.contributorRankings')}</SectionTitle>
               <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
-                Overall contributor rankings based on contributions across all branches.
+                {/* Overall contributor rankings based on contributions across all branches. */}
               </p>
-              
-                     {analysis.contributionPattern?.metrics?.distribution && analysis.contributionPattern.metrics.distribution.length > 0 && (
-                       <>
-                         <div style={{
-                           display: 'grid',
-                           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                           gap: '1rem',
-                           marginBottom: '2rem'
-                         }}>
-                           {analysis.contributionPattern.metrics.distribution
-                             .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                             .map((contributor, index) => (
-                    <div key={index} style={{
-                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                      borderRadius: '12px',
-                      padding: '1.5rem',
-                      border: '1px solid #dee2e6',
-                      position: 'relative',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}>
-                      {/* 순위 배지 */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '1rem',
-                        right: '1rem',
-                        background: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#6c757d',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: '30px',
-                        height: '30px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold'
+              {analysis.contributionPattern?.metrics?.distribution && analysis.contributionPattern.metrics.distribution.length > 0 && (
+                <>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: '1rem',
+                    marginBottom: '2rem'
+                  }}>
+                    {analysis.contributionPattern.metrics.distribution
+                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                      .map((contributor, index) => (
+                <div key={index} style={{
+                  background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  border: '1px solid #dee2e6',
+                  position: 'relative',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  {/* 순위 배지 */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    background: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#6c757d',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold'
+                  }}>
+                    {index + 1}
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ flexShrink: 0 }}>
+                      {contributor.avatar ? (
+                        <img 
+                          src={contributor.avatar} 
+                          alt={contributor.author} 
+                          style={{ 
+                            width: '50px', 
+                            height: '50px', 
+                            borderRadius: '50%',
+                            border: '3px solid white',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }} 
+                        />
+                      ) : (
+                        <div style={{ 
+                          width: '50px', 
+                          height: '50px', 
+                          borderRadius: '50%', 
+                          backgroundColor: '#6c757d', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          border: '3px solid white',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          fontSize: '18px',
+                          fontWeight: 'bold',
+                          color: 'white'
+                        }}>
+                          {contributor.author.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ 
+                        margin: '0 0 0.5rem 0', 
+                        fontSize: '1.1rem', 
+                        fontWeight: '600',
+                        color: '#2c3e50'
                       }}>
-                        {index + 1}
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ flexShrink: 0 }}>
-                          {contributor.avatar ? (
-                            <img 
-                              src={contributor.avatar} 
-                              alt={contributor.author} 
-                              style={{ 
-                                width: '50px', 
-                                height: '50px', 
-                                borderRadius: '50%',
-                                border: '3px solid white',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                              }} 
-                            />
-                          ) : (
-                            <div style={{ 
-                              width: '50px', 
-                              height: '50px', 
-                              borderRadius: '50%', 
-                              backgroundColor: '#6c757d', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center',
-                              border: '3px solid white',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                              fontSize: '18px',
-                              fontWeight: 'bold',
-                              color: 'white'
-                            }}>
-                              {contributor.author.charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                        {contributor.author}
+                      </h4>
+                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{contributor.commits}</strong> commits
                         </div>
-                        
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ 
-                            margin: '0 0 0.5rem 0', 
-                            fontSize: '1.1rem', 
-                            fontWeight: '600',
-                            color: '#2c3e50'
-                          }}>
-                            {contributor.author}
-                          </h4>
-                          <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                            <div style={{ marginBottom: '0.25rem' }}>
-                              <strong>{contributor.commits}</strong> commits
-                            </div>
-                            <div style={{ marginBottom: '0.25rem' }}>
-                              Total contribution: <strong>{contributor.percentage}%</strong>
-                            </div>
-                            <div style={{ 
-                              background: 'linear-gradient(90deg, #4CAF50 0%, #4CAF50 ' + contributor.percentage + '%, #e0e0e0 ' + contributor.percentage + '%, #e0e0e0 100%)',
-                              height: '6px',
-                              borderRadius: '3px',
-                              marginTop: '0.5rem'
-                            }}></div>
-                          </div>
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          Total contribution: <strong>{contributor.percentage}%</strong>
                         </div>
+                        <div style={{ 
+                          background: 'linear-gradient(90deg, #4CAF50 0%, #4CAF50 ' + contributor.percentage + '%, #e0e0e0 ' + contributor.percentage + '%, #e0e0e0 100%)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          marginTop: '0.5rem'
+                        }}></div>
                       </div>
                     </div>
-                         ))}
-                         </div>
+                  </div>
+                </div>
+                     ))}
+                     </div>
+                     
+                     {/* 페이지네이션 컨트롤 */}
+                     {analysis.contributionPattern?.metrics?.distribution?.length > itemsPerPage && (
+                       <div style={{
+                         display: 'flex',
+                         justifyContent: 'center',
+                         alignItems: 'center',
+                         gap: '1rem',
+                         marginTop: '2rem',
+                         padding: '1rem'
+                       }}>
+                         <button
+                           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                           disabled={currentPage === 1}
+                           style={{
+                             padding: '0.5rem 1rem',
+                             border: '1px solid #ddd',
+                             borderRadius: '6px',
+                             backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white',
+                             cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                             color: currentPage === 1 ? '#999' : '#333'
+                           }}
+                         >
+                           Previous
+                         </button>
                          
-                         {/* 페이지네이션 컨트롤 */}
-                         {analysis.contributionPattern?.metrics?.distribution?.length > itemsPerPage && (
-                           <div style={{
-                             display: 'flex',
-                             justifyContent: 'center',
-                             alignItems: 'center',
-                             gap: '1rem',
-                             marginTop: '2rem',
-                             padding: '1rem'
-                           }}>
-                             <button
-                               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                               disabled={currentPage === 1}
-                               style={{
-                                 padding: '0.5rem 1rem',
-                                 border: '1px solid #ddd',
-                                 borderRadius: '6px',
-                                 backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white',
-                                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                                 color: currentPage === 1 ? '#999' : '#333'
-                               }}
-                             >
-                               Previous
-                             </button>
-                             
-                             <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                               {currentPage} / {Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage)} pages
-                             </span>
-                             
-                             <button
-                               onClick={() => setCurrentPage(Math.min(Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage), currentPage + 1))}
-                               disabled={currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage)}
-                               style={{
-                                 padding: '0.5rem 1rem',
-                                 border: '1px solid #ddd',
-                                 borderRadius: '6px',
-                                 backgroundColor: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? '#f5f5f5' : 'white',
-                                 cursor: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? 'not-allowed' : 'pointer',
-                                 color: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? '#999' : '#333'
-                               }}
-                             >
-                               Next
-                             </button>
-                           </div>
-                         )}
-                       </>
+                         <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                           {currentPage} / {Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage)} pages
+                         </span>
+                         
+                         <button
+                           onClick={() => setCurrentPage(Math.min(Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage), currentPage + 1))}
+                           disabled={currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage)}
+                           style={{
+                             padding: '0.5rem 1rem',
+                             border: '1px solid #ddd',
+                             borderRadius: '6px',
+                             backgroundColor: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? '#f5f5f5' : 'white',
+                             cursor: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? 'not-allowed' : 'pointer',
+                             color: currentPage === Math.ceil((analysis.contributionPattern?.metrics?.distribution?.length || 0) / itemsPerPage) ? '#999' : '#333'
+                           }}
+                         >
+                           Next
+                         </button>
+                       </div>
                      )}
+                   </>
+                 )}
 
-                     <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
-                     {analysis.branchStats && analysis.branchStats.length > 0 && (
-                       <>
+                 <SectionTitle>{t('analysis.branchAnalysis')}</SectionTitle>
+                 {analysis.branchStats && analysis.branchStats.length > 0 && (
+                   <>
+                     <div style={{
+                       background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                       borderRadius: '12px',
+                       padding: '1rem',
+                       marginBottom: '1.5rem',
+                       border: '1px solid #90caf9'
+                     }}>
+                       <h4 style={{ margin: '0 0 0.5rem 0', color: '#1565c0' }}>{t('analysis.branchCommitStatistics')}</h4>
+                       <p style={{ margin: '0', fontSize: '0.9rem', color: '#1976d2' }}>
+                         Analyzed <strong>{analysis.totalCommitsAcrossBranches || 0} commits</strong> across
+                         <strong> {analysis.branchStats.length} branches</strong>.
+                       </p>
+                       {analysis.analysisLimit?.isLimited && (
                          <div style={{
-                           background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-                           borderRadius: '12px',
-                           padding: '1rem',
-                           marginBottom: '1.5rem',
-                           border: '1px solid #90caf9'
+                           background: 'rgba(255, 152, 0, 0.1)',
+                           border: '1px solid #ff9800',
+                           borderRadius: '8px',
+                           padding: '0.75rem',
+                           marginTop: '0.75rem'
                          }}>
-                           <h4 style={{ margin: '0 0 0.5rem 0', color: '#1565c0' }}>{t('analysis.branchCommitStatistics')}</h4>
-                           <p style={{ margin: '0', fontSize: '0.9rem', color: '#1976d2' }}>
-                             Analyzed <strong>{analysis.totalCommitsAcrossBranches || 0} commits</strong> across
-                             <strong> {analysis.branchStats.length} branches</strong>.
+                           <p style={{ margin: '0', fontSize: '0.85rem', color: '#e65100' }}>
+                             <strong>Analysis Limit:</strong> Due to high commit count, only recent <strong>{analysis.analysisLimit.maxCommits} commits</strong> were analyzed.
+                             <br />
+                             Total commits: <strong>{analysis.analysisLimit.originalCount}</strong>
                            </p>
-                           {analysis.analysisLimit?.isLimited && (
-                             <div style={{
-                               background: 'rgba(255, 152, 0, 0.1)',
-                               border: '1px solid #ff9800',
-                               borderRadius: '8px',
-                               padding: '0.75rem',
-                               marginTop: '0.75rem'
-                             }}>
-                               <p style={{ margin: '0', fontSize: '0.85rem', color: '#e65100' }}>
-                                 <strong>Analysis Limit:</strong> Due to high commit count, only recent <strong>{analysis.analysisLimit.maxCommits} commits</strong> were analyzed.
-                                 <br />
-                                 Total commits: <strong>{analysis.analysisLimit.originalCount}</strong>
-                               </p>
-                             </div>
-                           )}
                          </div>
-                  <MetricGrid>
-                    {analysis.branchStats.slice(0, 8).map((branch, index) => {
-                      const branchDisplayName = branch.name || branch.branch || `branch-${index}`;
-                      return (
-                      <MetricCard key={index} color={
-                        branch.commitCount > 50 ? '#4CAF50' :
-                        branch.commitCount > 20 ? '#2196F3' :
-                        branch.commitCount > 10 ? '#FF9800' :
-                        branch.commitCount > 5 ? '#FF5722' : '#9E9E9E'
-                      }>
-                        <MetricTitle>{branchDisplayName}</MetricTitle>
-                        <MetricValue>{branch.commitCount} commits</MetricValue>
-                        {branch.branchProtected && (
-                          <div style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '0.5rem' }}>
-                            Protected
-                          </div>
-                        )}
-                      </MetricCard>
-                      );
-                    })}
-                  </MetricGrid>
-                </>
-              )}
-
-              <SectionTitle>{t('analysis.activityLevel')}</SectionTitle>
-              <p>{analysis.activityLevel?.description ? t(analysis.activityLevel.description) : t('analysis.analyzing')}</p>
+                       )}
+                     </div>
               <MetricGrid>
-                <MetricCard>
-                  <MetricTitle>{t('analysis.activityLevel')}</MetricTitle>
-                  <MetricValue>{analysis.activityLevel?.level || t('analysis.analyzing')}</MetricValue>
-                </MetricCard>
-                <MetricCard>
-                  <MetricTitle>{t('analysis.recentCommits')}</MetricTitle>
-                  <MetricValue>{analysis.activityLevel?.metrics?.recentCommits || 0}</MetricValue>
-                </MetricCard>
-                <MetricCard>
-                  <MetricTitle>{t('analysis.lastCommit')}</MetricTitle>
-                  <MetricValue>{analysis.activityLevel?.metrics?.lastCommitDate ? new Date(analysis.activityLevel.metrics.lastCommitDate).toLocaleDateString() : 'N/A'}</MetricValue>
-                </MetricCard>
+                {analysis.branchStats.slice(0, 8).map((branch, index) => {
+                  const branchDisplayName = branch.name || branch.branch || `branch-${index}`;
+                  const metricColor =
+                    branch.commitCount > 50 ? '#4CAF50' :
+                    branch.commitCount > 20 ? '#2196F3' :
+                    branch.commitCount > 10 ? '#FF9800' :
+                    branch.commitCount > 5 ? '#FF5722' : '#9E9E9E';
+
+                  const handleCardKeyDown = (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleBranchClick(branch);
+                    }
+                  };
+
+                  return (
+                    <MetricCard
+                      key={index}
+                      color={metricColor}
+                      onClick={() => handleBranchClick(branch)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={handleCardKeyDown}
+                    >
+                      <MetricTitle>{branchDisplayName}</MetricTitle>
+                      <MetricValue>{branch.commitCount} commits</MetricValue>
+                      {branch.branchProtected && (
+                        <div style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '0.5rem' }}>
+                          Protected
+                        </div>
+                      )}
+                    </MetricCard>
+                  );
+                })}
               </MetricGrid>
-
-              <SectionTitle>{t('analysis.recommendations')}</SectionTitle>
-              <RecommendationList>
-                {analysis.recommendations?.map((rec, index) => (
-                  <RecommendationItem key={index} priority={rec.priority}>
-                    <PriorityBadge priority={rec.priority}>{rec.priority}</PriorityBadge>
-                    <strong>{t(rec.title)}:</strong> {t(rec.description)}
-                  </RecommendationItem>
-                )) || (
-                  <RecommendationItem priority="low">
-                    <PriorityBadge priority="low">{t('analysis.information')}</PriorityBadge>
-                    <strong>{t('analysis.githubFeatures.analysisComplete')}</strong> {t('analysis.githubFeatures.preparingRecommendations')}
-                  </RecommendationItem>
-                )}
-              </RecommendationList>
-              </ResultsCard>
-
-              {/* 프리미엄 기능들 */}
-              {/* GitHub API 연동 기능들 - 개별 컴포넌트로 분리 */}
-              {isLoggedIn && repoInfo ? (
-                <>
-                  <PullRequestsAnalysis repoInfo={repoInfo} />
-                  <IssuesAnalysis repoInfo={repoInfo} />
-                  <WorkflowsAnalysis repoInfo={repoInfo} />
-                  <ReleasesAnalysis repoInfo={repoInfo} />
-                </>
-              ) : (
-                <PremiumFeature
-                  title={t('analysis.githubFeatures.githubAPIIntegration')}
-                  description={t('analysis.githubFeatures.githubAPIIntegrationDesc')}
-                  isLoggedIn={isLoggedIn}
-                  onLoginClick={login}
-                >
-                  <div style={{ 
-                    background: 'white', 
-                    padding: '2rem', 
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                    textAlign: 'center',
-                    color: '#666'
-                  }}>
-                    로그인 후 GitHub API 기능을 사용할 수 있습니다.
-                  </div>
-                </PremiumFeature>
-              )}
-
-              {/* 추가 프리미엄 기능들 */}
-              <PremiumFeature
-                title={t('analysis.premiumFeatures.codeQualityAnalysis')}
-                description={t('analysis.premiumDescriptions.codeQualityMetrics')}
-                isLoggedIn={isLoggedIn}
-                onLoginClick={login}
-              >
-                <div style={{ 
-                  background: 'white', 
-                  padding: '1.5rem', 
-                  borderRadius: '8px',
-                  border: '1px solid #e1e5e9',
-                  textAlign: 'center',
-                  color: '#666'
-                }}>
-                  <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>{t('analysis.premiumFeatures.codeQualityAnalysisFeature')}</h4>
-                  <p>{t('analysis.premiumDescriptions.codeQualityDetails')}</p>
-                  <div style={{ 
-                    background: '#f8f9fa', 
-                    padding: '1rem', 
-                    borderRadius: '6px', 
-                    marginTop: '1rem',
-                    border: '1px solid #dee2e6'
-                  }}>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#ff8c42' }}>
-                      {t('analysis.premiumFeatures.underDevelopment')}
-                    </p>
-                  </div>
-                </div>
-              </PremiumFeature>
-
-              <PremiumFeature
-                title={t('analysis.premiumFeatures.teamCollaborationAnalysis')}
-                description={t('analysis.premiumDescriptions.teamCollaborationMetrics')}
-                isLoggedIn={isLoggedIn}
-                onLoginClick={login}
-              >
-                <div style={{ 
-                  background: 'white', 
-                  padding: '1.5rem', 
-                  borderRadius: '8px',
-                  border: '1px solid #e1e5e9',
-                  textAlign: 'center',
-                  color: '#666'
-                }}>
-                  <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>{t('analysis.premiumDescriptions.teamCollaborationFeature')}</h4>
-                  <p>{t('analysis.premiumDescriptions.teamCollaborationDetails')}</p>
-                  <div style={{ 
-                    background: '#f8f9fa', 
-                    padding: '1rem', 
-                    borderRadius: '6px', 
-                    marginTop: '1rem',
-                    border: '1px solid #dee2e6'
-                  }}>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#ff8c42' }}>
-                      {t('analysis.premiumFeatures.underDevelopment')}
-                    </p>
-                  </div>
-                </div>
-              </PremiumFeature>
-
-              {/* 고급 분석 & AI 인사이트 - 맨 밑에 배치 */}
-              <PremiumFeature
-                title={t('analysis.premiumFeatures.advancedAnalysisAI')}
-                description={t('analysis.premiumFeatures.advancedAnalysisDescription')}
-                isLoggedIn={isLoggedIn}
-                onLoginClick={login}
-              >
-                <AdvancedAnalysis analysisData={analysisData} repoInfo={repoInfo} />
-              </PremiumFeature>
             </>
           )}
 
-        </MainContent>
-      </AnalysisContainer>
+          <SectionTitle>{t('analysis.activityLevel')}</SectionTitle>
+          <p>{analysis.activityLevel?.description ? t(analysis.activityLevel.description) : t('analysis.analyzing')}</p>
+          <MetricGrid>
+            <MetricCard>
+              <MetricTitle>{t('analysis.activityLevel')}</MetricTitle>
+              <MetricValue>{analysis.activityLevel?.level || t('analysis.analyzing')}</MetricValue>
+            </MetricCard>
+            <MetricCard>
+              <MetricTitle>{t('analysis.recentCommits')}</MetricTitle>
+              <MetricValue>{analysis.activityLevel?.metrics?.recentCommits || 0}</MetricValue>
+            </MetricCard>
+            <MetricCard>
+              <MetricTitle>{t('analysis.lastCommit')}</MetricTitle>
+              <MetricValue>{analysis.activityLevel?.metrics?.lastCommitDate ? new Date(analysis.activityLevel.metrics.lastCommitDate).toLocaleDateString() : 'N/A'}</MetricValue>
+            </MetricCard>
+          </MetricGrid>
 
-      {/* Branch Activity Modal */}
-      {showBranchModal && selectedBranch && (
-        <ModalOverlay onClick={() => setShowBranchModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>{t('analysis.branchDetails')}: {selectedBranch.branch}</ModalTitle>
-              <CloseButton onClick={() => setShowBranchModal(false)}>
-                ×
-              </CloseButton>
-            </ModalHeader>
+          <SectionTitle>{t('analysis.recommendations')}</SectionTitle>
+          <RecommendationList>
+            {analysis.recommendations?.map((rec, index) => (
+              <RecommendationItem key={index} priority={rec.priority}>
+                <PriorityBadge priority={rec.priority}>{rec.priority}</PriorityBadge>
+                <strong>{t(rec.title)}:</strong> {t(rec.description)}
+              </RecommendationItem>
+            )) || (
+              <RecommendationItem priority="low">
+                <PriorityBadge priority="low">{t('analysis.information')}</PriorityBadge>
+                <strong>{t('analysis.githubFeatures.analysisComplete')}</strong> {t('analysis.githubFeatures.preparingRecommendations')}
+              </RecommendationItem>
+            )}
+          </RecommendationList>
+          </ResultsCard>
 
-            <BranchActivityGrid>
-              <ActivityCard level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
-                <ActivityTitle level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
-                  {t('analysis.commitCount')}
-                </ActivityTitle>
-                <ActivityValue level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
-                  {selectedBranch.commitCount}
-                </ActivityValue>
-                <ActivityDescription>
-                  {t('analysis.totalCommits')} {t('analysis.inThisBranch')}
-                </ActivityDescription>
-              </ActivityCard>
-
-              <ActivityCard level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
-                <ActivityTitle level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
-                  {t('analysis.isProtected')}
-                </ActivityTitle>
-                <ActivityValue level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
-                  {selectedBranch.branchProtected ? t('analysis.protected') : t('analysis.open')}
-                </ActivityValue>
-                <ActivityDescription>
-                  {selectedBranch.branchProtected ? t('analysis.branchIsProtectedWithRules') : t('analysis.branchHasNoProtectionRules')}
-                </ActivityDescription>
-              </ActivityCard>
-
-              <ActivityCard level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
-                <ActivityTitle level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
-                  {t('analysis.branchType')}
-                </ActivityTitle>
-                <ActivityValue level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
-                  {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? t('analysis.main') : 
-                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? t('analysis.develop') : t('analysis.feature')}
-                </ActivityValue>
-                <ActivityDescription>
-                  {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? t('analysis.primaryProductionBranch') : 
-                   selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? t('analysis.developmentIntegrationBranch') : t('analysis.featureOrTopicBranch')}
-                </ActivityDescription>
-              </ActivityCard>
-
-              <ActivityCard level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
-                <ActivityTitle level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
-                  {t('analysis.activityLevel')}
-                </ActivityTitle>
-                <ActivityValue level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
-                  {selectedBranch.commitCount > 100 ? t('analysis.veryActive') : 
-                   selectedBranch.commitCount > 50 ? t('analysis.active') : 
-                   selectedBranch.commitCount > 20 ? t('analysis.moderate') : t('analysis.low')}
-                </ActivityValue>
-                <ActivityDescription>
-                  {selectedBranch.commitCount > 100 ? t('analysis.highlyActiveDevelopment') : 
-                   selectedBranch.commitCount > 50 ? t('analysis.activeDevelopment') : 
-                   selectedBranch.commitCount > 20 ? t('analysis.moderateActivity') : t('analysis.lowActivity')}
-                </ActivityDescription>
-              </ActivityCard>
-            </BranchActivityGrid>
-
+          {/* 프리미엄 기능들 */}
+          {/* GitHub API 연동 기능들 - 개별 컴포넌트로 분리 */}
+          {isLoggedIn && repoInfo ? (
+            <>
+              <PullRequestsAnalysis repoInfo={repoInfo} />
+              <IssuesAnalysis repoInfo={repoInfo} />
+              <WorkflowsAnalysis repoInfo={repoInfo} />
+              <ReleasesAnalysis repoInfo={repoInfo} />
+            </>
+          ) : (
             <div style={{ 
-              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
-              borderRadius: '12px', 
-              padding: '1.5rem',
-              border: '1px solid #dee2e6'
+              marginTop: '2.5rem',
+              background: 'rgba(255, 255, 255, 0.95)', 
+              padding: '2rem', 
+              borderRadius: '12px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+              textAlign: 'center',
+              color: '#4a4a4a',
+              border: '1px solid rgba(226, 232, 240, 0.8)'
             }}>
-              <h4 style={{ margin: '0 0 1rem 0', color: '#2c3e50', fontSize: '1.1rem', fontWeight: '600' }}>
-{t('analysis.branchSummary')}
-              </h4>
-              <p style={{ margin: '0', color: '#666', lineHeight: '1.5', fontSize: '0.95rem' }}>
-                <strong>{selectedBranch.branch}</strong> {t('analysis.branchHasCommitsAndIs').replace('{count}', selectedBranch.commitCount)} 
-                {selectedBranch.branchProtected ? t('analysis.protectedWithBranchRules') : t('analysis.openForDirectPushes')}. 
-                {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 
-                  t('analysis.mainProductionBranch') : 
-                  selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ?
-                  t('analysis.developmentIntegrationBranchDesc') :
-                  t('analysis.appearsToBeFeatureBranch')}
+              <h3 style={{ marginBottom: '0.75rem', color: '#1f2937', fontSize: '1.3rem' }}>
+                {t('analysis.githubFeatures.githubAPIIntegration')}
+              </h3>
+              <p style={{ margin: '0 auto', maxWidth: '520px', lineHeight: 1.6 }}>
+                {t('analysis.githubFeatures.githubAPIIntegrationDesc')}
               </p>
+              <p style={{ marginTop: '1rem', fontWeight: 600, color: '#ff6b35' }}>
+                {t('analysis.githubFeatures.loginRequired')}
+              </p>
+              <AnalyzeButton style={{ marginTop: '1rem' }} onClick={login}>
+                {t('analysis.githubFeatures.loginWithGitHub')}
+              </AnalyzeButton>
             </div>
-          </ModalContent>
-        </ModalOverlay>
+          )}
+
+          {/* 추가 프리미엄 기능들 */}
+          {currentRepoKey && (
+            <ChatSection>
+              <ChatHeader>
+                <ChatTitle>팀 채팅 & 기록</ChatTitle>
+                <ChatDescription>
+                  저장소를 함께 사용하는 동료와 대화를 나누고 결정 사항을 남겨보세요.
+                </ChatDescription>
+              </ChatHeader>
+              <ChatMessages>
+                {filteredChatMessages.length > 0 ? (
+                  filteredChatMessages.map((message) => (
+                    <ChatMessage key={message.id}>
+                      <ChatMessageHeader>
+                        <ChatAuthor>{message.author}</ChatAuthor>
+                        <ChatTimestamp>
+                          {new Date(message.timestamp).toLocaleString()}
+                        </ChatTimestamp>
+                      </ChatMessageHeader>
+                      <ChatText>{message.text}</ChatText>
+                    </ChatMessage>
+                  ))
+                ) : (
+                  <ChatMessage>
+                    <ChatText>
+                      아직 남겨진 메시지가 없습니다. 첫 대화를 시작해보세요!
+                    </ChatText>
+                  </ChatMessage>
+                )}
+              </ChatMessages>
+              <ChatForm onSubmit={handleChatSubmit}>
+                <ChatInput
+                  value={chatInput}
+                  onChange={(event) => setChatInput(event.target.value)}
+                  placeholder="팀원들과 공유하고 싶은 메모나 아이디어를 입력하세요."
+                />
+                <ChatSubmitButton type="submit">
+                  메시지 남기기
+                </ChatSubmitButton>
+              </ChatForm>
+            </ChatSection>
+          )}
+        </>
       )}
-    </Layout>
-  );
+
+    </MainContent>
+  </AnalysisContainer>
+
+  {/* Branch Activity Modal */}
+  {showBranchModal && selectedBranch && (
+    <ModalOverlay onClick={() => setShowBranchModal(false)}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
+        <ModalHeader>
+          <ModalTitle>{t('analysis.branchDetails')}: {selectedBranch.branch}</ModalTitle>
+          <CloseButton onClick={() => setShowBranchModal(false)}>
+            ×
+          </CloseButton>
+        </ModalHeader>
+
+        <BranchActivityGrid>
+          <ActivityCard level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
+            <ActivityTitle level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
+              {t('analysis.commitCount')}
+            </ActivityTitle>
+            <ActivityValue level={selectedBranch.commitCount > 50 ? 'Very Active' : selectedBranch.commitCount > 20 ? 'Active' : selectedBranch.commitCount > 10 ? 'Moderate' : 'Low'}>
+              {selectedBranch.commitCount}
+            </ActivityValue>
+            <ActivityDescription>
+              {t('analysis.totalCommits')} {t('analysis.inThisBranch')}
+            </ActivityDescription>
+          </ActivityCard>
+
+          <ActivityCard level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
+            <ActivityTitle level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
+              {t('analysis.isProtected')}
+            </ActivityTitle>
+            <ActivityValue level={selectedBranch.branchProtected ? 'Very Active' : 'Moderate'}>
+              {selectedBranch.branchProtected ? t('analysis.protected') : t('analysis.open')}
+            </ActivityValue>
+            <ActivityDescription>
+              {selectedBranch.branchProtected ? t('analysis.branchIsProtectedWithRules') : t('analysis.branchHasNoProtectionRules')}
+            </ActivityDescription>
+          </ActivityCard>
+
+          <ActivityCard level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
+            <ActivityTitle level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
+              {t('analysis.branchType')}
+            </ActivityTitle>
+            <ActivityValue level={selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 'Very Active' : selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? 'Active' : 'Moderate'}>
+              {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? t('analysis.main') : 
+               selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? t('analysis.develop') : t('analysis.feature')}
+            </ActivityValue>
+            <ActivityDescription>
+              {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? t('analysis.primaryProductionBranch') : 
+               selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ? t('analysis.developmentIntegrationBranch') : t('analysis.featureOrTopicBranch')}
+            </ActivityDescription>
+          </ActivityCard>
+
+          <ActivityCard level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
+            <ActivityTitle level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
+              {t('analysis.activityLevel')}
+            </ActivityTitle>
+            <ActivityValue level={selectedBranch.commitCount > 100 ? 'Very Active' : selectedBranch.commitCount > 50 ? 'Active' : selectedBranch.commitCount > 20 ? 'Moderate' : 'Low'}>
+              {selectedBranch.commitCount > 100 ? t('analysis.veryActive') : 
+               selectedBranch.commitCount > 50 ? t('analysis.active') : 
+               selectedBranch.commitCount > 20 ? t('analysis.moderate') : t('analysis.low')}
+            </ActivityValue>
+            <ActivityDescription>
+              {selectedBranch.commitCount > 100 ? t('analysis.highlyActiveDevelopment') : 
+               selectedBranch.commitCount > 50 ? t('analysis.activeDevelopment') : 
+               selectedBranch.commitCount > 20 ? t('analysis.moderateActivity') : t('analysis.lowActivity')}
+            </ActivityDescription>
+          </ActivityCard>
+        </BranchActivityGrid>
+
+        <div style={{ 
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
+          borderRadius: '12px', 
+          padding: '1.5rem',
+          border: '1px solid #dee2e6'
+        }}>
+          <h4 style={{ margin: '0 0 1rem 0', color: '#2c3e50', fontSize: '1.1rem', fontWeight: '600' }}>
+{t('analysis.branchSummary')}
+          </h4>
+          <p style={{ margin: '0', color: '#666', lineHeight: '1.5', fontSize: '0.95rem' }}>
+            <strong>{selectedBranch.branch}</strong> {t('analysis.branchHasCommitsAndIs').replace('{count}', selectedBranch.commitCount)} 
+            {selectedBranch.branchProtected ? t('analysis.protectedWithBranchRules') : t('analysis.openForDirectPushes')}. 
+            {selectedBranch.branch === 'main' || selectedBranch.branch === 'master' ? 
+              t('analysis.mainProductionBranch') : 
+              selectedBranch.branch === 'develop' || selectedBranch.branch === 'dev' ?
+              t('analysis.developmentIntegrationBranchDesc') :
+              t('analysis.appearsToBeFeatureBranch')}
+          </p>
+        </div>
+      </ModalContent>
+    </ModalOverlay>
+  )}
+</Layout>
+);
 };
 
 export default RepositoryAnalysis;

@@ -43,6 +43,80 @@ const callGitHubAPI = async (url, accessToken) => {
   }
 };
 
+const buildContributorStats = (contributors) => {
+  if (!Array.isArray(contributors)) {
+    return [];
+  }
+
+  const sanitized = contributors.map((contributor, index) => {
+    if (!contributor) return null;
+
+    const totalCommits =
+      contributor.total ??
+      contributor.commits ??
+      contributor.contributions ??
+      0;
+    const weeks = contributor.weeks || [];
+    const totalAdditions = weeks.reduce((sum, week) => sum + (week.a || 0), 0);
+    const totalDeletions = weeks.reduce((sum, week) => sum + (week.d || 0), 0);
+
+    return {
+      author: contributor.author?.login || contributor.login || `user-${index + 1}`,
+      authorName: contributor.author?.login || contributor.login || `user-${index + 1}`,
+      avatar: contributor.author?.avatar_url || contributor.avatar || contributor.avatar_url || null,
+      commits: totalCommits,
+      total: totalCommits,
+      additions: totalAdditions,
+      deletions: totalDeletions,
+      weeks,
+      percentage: 0,
+    };
+  }).filter(Boolean);
+
+  const totalCommits = sanitized.reduce((sum, contributor) => sum + contributor.commits, 0);
+  sanitized.forEach((contributor) => {
+    contributor.percentage =
+      totalCommits > 0
+        ? Math.round((contributor.commits / totalCommits) * 100 * 100) / 100
+        : 0;
+  });
+
+  sanitized.sort((a, b) => b.commits - a.commits);
+  return sanitized;
+};
+
+const fetchContributorDistribution = async (owner, repo, accessToken) => {
+  // 1차 시도: stats/contributors
+  try {
+    const statsData = await callGitHubAPI(
+      `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
+      accessToken
+    );
+    if (Array.isArray(statsData) && statsData.length > 0) {
+      return buildContributorStats(statsData);
+    }
+    console.warn(`⚠️ [${owner}/${repo}] stats/contributors 응답이 비어 있습니다. 보조 엔드포인트를 시도합니다.`);
+  } catch (error) {
+    console.warn(`⚠️ [${owner}/${repo}] stats/contributors 호출 실패, 보조 엔드포인트 사용:`, error.response?.status || error.message);
+  }
+
+  // 2차 시도: /contributors (빠르게 응답)
+  try {
+    const contributorsData = await callGitHubAPI(
+      `https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`,
+      accessToken
+    );
+    if (Array.isArray(contributorsData) && contributorsData.length > 0) {
+      return buildContributorStats(contributorsData);
+    }
+    console.warn(`⚠️ [${owner}/${repo}] contributors 엔드포인트도 데이터가 비어 있습니다.`);
+  } catch (error) {
+    console.warn(`⚠️ [${owner}/${repo}] contributors 엔드포인트 호출 실패:`, error.response?.status || error.message);
+  }
+
+  return [];
+};
+
 // 레포지토리 정보 가져오기 (공개)
 router.get('/public/info/:owner/:repo', async (req, res) => {
   try {
@@ -194,50 +268,8 @@ router.get('/public/commits/:owner/:repo', async (req, res) => {
 
     console.log(`🔄 [공개 커밋 통계] ${owner}/${repo} 커밋 통계를 가져옵니다`);
 
-    const statsData = await callGitHubAPI(
-      `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
-      null // 환경 변수의 GITHUB_TOKEN 자동 사용
-    );
-
-    // statsData가 배열인지 확인
-    if (!Array.isArray(statsData)) {
-      console.log(`📥 [공개 커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: 0명의 기여자 (데이터 없음)`);
-      return res.json([]);
-    }
-
-    console.log(`📥 [공개 커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: ${statsData.length}명의 기여자`);
-
-    // 기여자 데이터 정리
-    const contributors = statsData.map(contributor => {
-      const totalCommits = contributor.total;
-      const weeks = contributor.weeks || [];
-      
-      // 총 추가/삭제 라인 수 계산
-      const totalAdditions = weeks.reduce((sum, week) => sum + (week.a || 0), 0);
-      const totalDeletions = weeks.reduce((sum, week) => sum + (week.d || 0), 0);
-      
-      return {
-        author: contributor.author.login,
-        authorName: contributor.author.login,
-        avatar: contributor.author.avatar_url,
-        commits: totalCommits,
-        total: totalCommits,
-        additions: totalAdditions,
-        deletions: totalDeletions,
-        weeks: weeks,
-        percentage: 0 // 나중에 계산
-      };
-    });
-
-    // 총 커밋 수 계산 및 비율 계산
-    const totalCommits = contributors.reduce((sum, contributor) => sum + contributor.commits, 0);
-    contributors.forEach(contributor => {
-      contributor.percentage = totalCommits > 0 ? Math.round((contributor.commits / totalCommits) * 100 * 100) / 100 : 0;
-    });
-
-    // 커밋 수 기준으로 정렬
-    contributors.sort((a, b) => b.commits - a.commits);
-
+    const contributors = await fetchContributorDistribution(owner, repo, null);
+    console.log(`📥 [공개 커밋 통계] ${owner}/${repo} 최종 정리된 기여자 수: ${contributors.length}명`);
     res.json(contributors);
   } catch (error) {
     console.error('공개 커밋 통계 가져오기 오류:', error);
@@ -261,50 +293,8 @@ router.get('/commits/:owner/:repo', authenticateToken, async (req, res) => {
 
     console.log(`🔄 [커밋 통계] ${owner}/${repo} 커밋 통계를 가져옵니다`);
 
-    const statsData = await callGitHubAPI(
-      `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
-      accessToken
-    );
-
-    // statsData가 배열인지 확인
-    if (!Array.isArray(statsData)) {
-      console.log(`📥 [커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: 0명의 기여자 (데이터 없음)`);
-      return res.json([]);
-    }
-
-    console.log(`📥 [커밋 통계] ${owner}/${repo} 커밋 통계를 성공적으로 가져왔습니다: ${statsData.length}명의 기여자`);
-
-    // 기여자 데이터 정리
-    const contributors = statsData.map(contributor => {
-      const totalCommits = contributor.total;
-      const weeks = contributor.weeks || [];
-      
-      // 총 추가/삭제 라인 수 계산
-      const totalAdditions = weeks.reduce((sum, week) => sum + (week.a || 0), 0);
-      const totalDeletions = weeks.reduce((sum, week) => sum + (week.d || 0), 0);
-      
-      return {
-        author: contributor.author.login,
-        authorName: contributor.author.login,
-        avatar: contributor.author.avatar_url,
-        commits: totalCommits,
-        total: totalCommits,
-        additions: totalAdditions,
-        deletions: totalDeletions,
-        weeks: weeks,
-        percentage: 0 // 나중에 계산
-      };
-    });
-
-    // 총 커밋 수 계산 및 비율 계산
-    const totalCommits = contributors.reduce((sum, contributor) => sum + contributor.commits, 0);
-    contributors.forEach(contributor => {
-      contributor.percentage = totalCommits > 0 ? Math.round((contributor.commits / totalCommits) * 100 * 100) / 100 : 0;
-    });
-
-    // 커밋 수 기준으로 정렬
-    contributors.sort((a, b) => b.commits - a.commits);
-
+    const contributors = await fetchContributorDistribution(owner, repo, accessToken);
+    console.log(`📥 [커밋 통계] ${owner}/${repo} 최종 정리된 기여자 수: ${contributors.length}명`);
     res.json(contributors);
   } catch (error) {
     console.error('커밋 통계 가져오기 오류:', error);

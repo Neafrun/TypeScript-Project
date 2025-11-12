@@ -72,7 +72,7 @@ const RepoItem = styled.div`
   padding: 1.5rem;
   border: 1px solid #e1e4e8;
   border-radius: 8px;
-  cursor: pointer;
+  cursor: default;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -102,13 +102,13 @@ const RepoItem = styled.div`
 
 const RepoName = styled.h4`
   margin: 0 0 0.5rem;
-  color: #0366d6;
+  color: #1f2937;
   font-size: 1.1rem;
   font-weight: 600;
   transition: color 0.2s ease;
   
   ${RepoItem}:hover & {
-    color: #ff8c42;
+    color: #ff6b35;
   }
 `;
 
@@ -134,6 +134,12 @@ const StatItem = styled.span`
   gap: 0.25rem;
 `;
 
+const ButtonGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
 const AnalyzeButton = styled.button`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
   color: white;
@@ -145,6 +151,11 @@ const AnalyzeButton = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 140, 66, 0.4);
+  }
 
   &:hover {
     transform: translateY(-1px);
@@ -245,8 +256,17 @@ const Dashboard = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleAnalyzeRepo = (repo) => {
-    // Repository Analysis 페이지로 이동하면서 레포지토리 URL을 전달
-    navigate(`/repository-analysis?repo=${encodeURIComponent(repo.full_name)}`);
+    const ownerRepo = repo.full_name || repo.name;
+    navigate(`/repository-analysis?repo=${encodeURIComponent(ownerRepo)}`);
+  };
+
+  const handleAIAnalyzeRepo = (repo) => {
+    const ownerRepo = repo.full_name || repo.name;
+    navigate(`/ai-analysis?repo=${encodeURIComponent(ownerRepo)}`);
+  };
+
+  const handleRepoItemClick = (repo) => {
+    handleAnalyzeRepo(repo);
   };
 
   // 필터링 로직
@@ -395,7 +415,7 @@ const Dashboard = () => {
                 </SortSection>
                 <RepoList>
                   {filteredRepos.map((r) => (
-                  <RepoItem key={r.id} onClick={() => handleAnalyzeRepo(r)}>
+                  <RepoItem key={r.id} onClick={() => handleRepoItemClick(r)}>
                     <RepoName>{r.full_name || r.name}</RepoName>
                     <RepoDescription>{r.description || t('dashboard.noDescription')}</RepoDescription>
                     <RepoStats>
@@ -403,24 +423,33 @@ const Dashboard = () => {
                         {r.private ? `🔒 ${t('dashboard.private')}` : `🌐 ${t('dashboard.public')}`}
                       </StatItem>
                       <StatItem>
-                        {t('dashboard.stars')}: {r.stargazers_count || 0}
+                        ⭐ {r.stargazers_count || 0}
                       </StatItem>
                       <StatItem>
-                        {t('dashboard.forks')}: {r.forks_count || 0}
-                      </StatItem>
-                      <StatItem>
-                        {t('dashboard.language')}: {r.language || t('dashboard.unknown')}
+                        🍴 {r.forks_count || 0}
                       </StatItem>
                       <StatItem>
                         {t('dashboard.created')}: {new Date(r.created_at).toLocaleDateString()}
                       </StatItem>
                     </RepoStats>
-                    <AnalyzeButton onClick={(e) => {
-                      e.stopPropagation();
-                      handleAnalyzeRepo(r);
-                    }}>
-                      {t('dashboard.analyze')}
-                    </AnalyzeButton>
+                    <ButtonGroup>
+                      <AnalyzeButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAnalyzeRepo(r);
+                        }}
+                      >
+                        {t('dashboard.analyzeRepository')}
+                      </AnalyzeButton>
+                      <AnalyzeButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAIAnalyzeRepo(r);
+                        }}
+                      >
+                        {t('dashboard.analyzeWithAI')}
+                      </AnalyzeButton>
+                    </ButtonGroup>
                   </RepoItem>
                 ))}
                 </RepoList>
