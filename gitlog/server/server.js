@@ -25,6 +25,7 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const CLIENT_BUILD_PATH = path.join(__dirname, 'public');
 
 // 미들웨어 설정
 app.use(cors({
@@ -56,6 +57,23 @@ app.use('/api/github', githubRoutes);
 app.use('/api/repository', repositoryRoutes);
 app.use('/api/ai', aiRoutes);
 
+// 정적 파일 제공 (React 빌드 결과)
+app.use(express.static(CLIENT_BUILD_PATH));
+
+// SPA 라우팅 대응
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+
+  res.sendFile(path.join(CLIENT_BUILD_PATH, 'index.html'), (err) => {
+    if (err) {
+      console.error('❌ [정적 파일] index.html 전달 중 오류가 발생했습니다:', err);
+      next(err);
+    }
+  });
+});
+
 // 헬스 체크 엔드포인트
 app.get('/api/health', (req, res) => {
   console.log('💚 [헬스 체크] 서버 상태 확인 요청을 받았습니다');
@@ -66,7 +84,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 핸들러
+// 404 핸들러 (API 전용)
 app.use('*', (req, res) => {
   console.log(`❌ [404 오류] 존재하지 않는 경로에 접근했습니다: ${req.method} ${req.originalUrl}`);
   console.log(`❌ [404 오류] 요청 헤더:`, req.headers);

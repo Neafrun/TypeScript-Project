@@ -14,9 +14,15 @@
     "styled-components": "^5.3.5",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "rimraf": "^5.0.5",
+    "shx": "^0.3.4"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "postbuild": "npm run copy:build",
+    "copy:build": "rimraf ../server/public && shx mkdir -p ../server/public && shx cp -r build/* ../server/public",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
