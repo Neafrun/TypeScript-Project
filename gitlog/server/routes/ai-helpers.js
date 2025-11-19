@@ -427,23 +427,23 @@ Format your response in JSON with the following structure:
 }`;
   }
 
-  // 여러 모델과 API 버전을 순차적으로 시도
-  const modelVersions = [
-    { model: 'gemini-1.5-flash', version: 'v1' },
-    { model: 'gemini-1.5-flash-latest', version: 'v1' },
-    { model: 'gemini-1.5-flash', version: 'v1beta' },
-    { model: 'gemini-1.5-pro', version: 'v1' },
-    { model: 'gemini-1.5-pro-latest', version: 'v1' },
-    { model: 'gemini-1.5-pro', version: 'v1beta' },
+  // v1 API만 사용 (v1beta는 최신 모델을 지원하지 않음)
+  // 여러 모델을 순차적으로 시도
+  const models = [
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro',
+    'gemini-1.5-pro-latest',
+    'gemini-pro', // 구버전 모델 (fallback)
   ];
 
   let lastError = null;
 
-  for (const { model, version } of modelVersions) {
+  for (const model of models) {
     try {
-      const apiUrl = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
       
-      console.log(`🔄 [Gemini API] ${version}/${model} 모델 시도 중...`);
+      console.log(`🔄 [Gemini API] v1/${model} 모델 시도 중...`);
       
       const response = await axios.post(
         apiUrl,
@@ -464,7 +464,7 @@ Format your response in JSON with the following structure:
 
       const content = response.data.candidates[0].content.parts[0].text;
       
-      console.log(`✅ [Gemini API] ${version}/${model} 모델로 성공적으로 분석 완료`);
+      console.log(`✅ [Gemini API] v1/${model} 모델로 성공적으로 분석 완료`);
       
       // JSON 파싱 시도
       try {
@@ -478,16 +478,23 @@ Format your response in JSON with the following structure:
 
       return {
         rawResponse: content,
-        model: `${version}/${model}`,
+        model: `v1/${model}`,
         analysisType: analysisType
       };
     } catch (error) {
       lastError = error;
       const errorMsg = error.response?.data?.error?.message || error.message;
-      console.warn(`⚠️ [Gemini API] ${version}/${model} 모델 실패: ${errorMsg}`);
+      const errorStatus = error.response?.status;
+      console.warn(`⚠️ [Gemini API] v1/${model} 모델 실패 (${errorStatus}): ${errorMsg}`);
       
-      // 404가 아닌 다른 에러면 중단
-      if (error.response?.status !== 404) {
+      // 모델을 찾을 수 없는 에러(404, 400, "not found" 메시지)면 다음 모델 시도
+      const isModelNotFound = errorStatus === 404 || 
+                              errorStatus === 400 || 
+                              (errorMsg && errorMsg.toLowerCase().includes('not found')) ||
+                              (errorMsg && errorMsg.toLowerCase().includes('not supported'));
+      
+      if (!isModelNotFound) {
+        // 다른 에러면 즉시 중단 (인증 오류, 할당량 초과 등)
         console.error('Gemini API 오류:', error.response?.data || error.message);
         if (error.response?.data?.error) {
           throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
@@ -495,7 +502,7 @@ Format your response in JSON with the following structure:
         throw new Error(`Gemini API error: ${error.message}`);
       }
       
-      // 404면 다음 모델 시도
+      // 모델을 찾을 수 없으면 다음 모델 시도
       continue;
     }
   }
