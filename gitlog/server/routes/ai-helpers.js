@@ -428,13 +428,12 @@ Format your response in JSON with the following structure:
   }
 
   // v1 API만 사용 (v1beta는 최신 모델을 지원하지 않음)
-  // 여러 모델을 순차적으로 시도
+  // 여러 모델을 순차적으로 시도 (가장 기본적인 모델부터)
   const models = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-pro',
-    'gemini-1.5-pro-latest',
-    'gemini-pro', // 구버전 모델 (fallback)
+    'gemini-pro', // 가장 기본적인 모델 (우선 시도)
+    'gemini-1.0-pro', // v1.0 버전
+    'gemini-1.5-flash', // 빠른 모델
+    'gemini-1.5-pro', // 강력한 모델
   ];
 
   let lastError = null;
