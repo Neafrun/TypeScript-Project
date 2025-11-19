@@ -232,24 +232,31 @@ router.get('/info/:owner/:repo', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('레포지토리 정보 가져오기 오류:', error);
     
+    if (error.response?.status === 403) {
+      const errorMessage = error.response?.data?.message || '';
+      if (errorMessage.includes('OAuth App access restrictions')) {
+        return res.status(403).json({ 
+          error: 'Organization access restriction',
+          message: '이 저장소는 조직의 OAuth App 접근 제한으로 인해 접근할 수 없습니다. 조직 관리자에게 GitLog 앱 승인을 요청해주세요.',
+          details: errorMessage
+        });
+      } else if (errorMessage.includes('API rate limit')) {
+        return res.status(403).json({ 
+          error: 'API rate limit exceeded',
+          message: 'GitHub API rate limit has been exceeded. Please try again later.'
+        });
+      }
+      return res.status(403).json({ 
+        error: 'Access forbidden',
+        message: '이 저장소에 접근할 권한이 없습니다.'
+      });
+    }
+    
     if (error.response?.status === 404) {
       return res.status(404).json({ 
         error: 'Repository not found',
         message: 'The repository you are trying to access does not exist or is not accessible.'
       });
-    } else if (error.response?.status === 403) {
-      const errorData = error.response?.data || {};
-      if (errorData.message && errorData.message.includes('API rate limit')) {
-        return res.status(403).json({ 
-          error: 'API rate limit exceeded',
-          message: 'GitHub API rate limit has been exceeded. Please try again later.'
-        });
-      } else {
-        return res.status(403).json({ 
-          error: 'Access denied',
-          message: 'You do not have permission to access this private repository. Please ensure you are logged in and have access to this repository.'
-        });
-      }
     } else if (error.response?.status === 401) {
       return res.status(401).json({ 
         error: 'Authentication required',
