@@ -535,23 +535,46 @@ Format your response in JSON with the following structure:
       const errorStatus = error.response?.status;
       console.warn(`⚠️ [Gemini API] v1/${model} 모델 실패 (${errorStatus}): ${errorMsg}`);
       
-      // 모델을 찾을 수 없는 에러(404, 400, "not found" 메시지)면 다음 모델 시도
-      const isModelNotFound = errorStatus === 404 || 
-                              errorStatus === 400 || 
-                              (errorMsg && errorMsg.toLowerCase().includes('not found')) ||
-                              (errorMsg && errorMsg.toLowerCase().includes('not supported'));
-      
-      if (!isModelNotFound) {
-        // 다른 에러면 즉시 중단 (인증 오류, 할당량 초과 등)
-        console.error('Gemini API 오류:', error.response?.data || error.message);
+      // 즉시 중단해야 하는 에러: 인증/권한 문제
+      const isAuthError = errorStatus === 401 || errorStatus === 403;
+      if (isAuthError) {
+        console.error('❌ [Gemini API] 인증 오류:', error.response?.data || error.message);
         if (error.response?.data?.error) {
-          throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
+          throw new Error(`Gemini API key authentication failed: ${error.response.data.error.message || error.message}`);
         }
-        throw new Error(`Gemini API error: ${error.message}`);
+        throw new Error(`Gemini API authentication failed: ${error.message}`);
       }
       
-      // 모델을 찾을 수 없으면 다음 모델 시도
-      continue;
+      // 다음 모델을 시도해야 하는 에러:
+      // - 모델을 찾을 수 없음 (404, 400 with "not found")
+      // - 일시적인 과부하 (503, 429)
+      // - 서버 오류 (500, 502, 504) - 다른 모델이 작동할 수 있음
+      const shouldTryNextModel = errorStatus === 404 || 
+                                  errorStatus === 400 ||
+                                  errorStatus === 429 || // Rate limit (다음 모델 시도)
+                                  errorStatus === 503 || // Service unavailable (다른 모델 시도)
+                                  errorStatus === 500 ||
+                                  errorStatus === 502 ||
+                                  errorStatus === 504 ||
+                                  (errorMsg && errorMsg.toLowerCase().includes('not found')) ||
+                                  (errorMsg && errorMsg.toLowerCase().includes('not supported')) ||
+                                  (errorMsg && errorMsg.toLowerCase().includes('overloaded')) ||
+                                  (errorMsg && errorMsg.toLowerCase().includes('unavailable'));
+      
+      if (shouldTryNextModel) {
+        // 다음 모델 시도
+        if (errorStatus === 503 || errorStatus === 429) {
+          console.log(`⏳ [Gemini API] ${model} 모델이 과부하 상태입니다. 다음 모델을 시도합니다...`);
+        }
+        continue;
+      }
+      
+      // 예상치 못한 에러는 중단
+      console.error('❌ [Gemini API] 예상치 못한 오류:', error.response?.data || error.message);
+      if (error.response?.data?.error) {
+        throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
+      }
+      throw new Error(`Gemini API error: ${error.message}`);
     }
   }
 
