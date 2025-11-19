@@ -267,6 +267,46 @@ const analyzeWithGemini = async (repoData, commits, contributors, analysisType =
     throw new Error('Gemini API key is not configured');
   }
 
+  // API 키 검증 및 사용 가능한 모델 확인
+  let availableModels = [];
+  try {
+    console.log('🔍 [Gemini API] 사용 가능한 모델 확인 중...');
+    console.log('🔑 [Gemini API] API 키 확인:', apiKey ? `${apiKey.substring(0, 10)}...` : '없음');
+    
+    const modelsResponse = await axios.get(
+      `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+    
+    if (modelsResponse.data && modelsResponse.data.models) {
+      // generateContent를 지원하는 모델만 필터링
+      availableModels = modelsResponse.data.models
+        .filter(model => model.supportedGenerationMethods?.includes('generateContent'))
+        .map(model => model.name.replace('models/', ''))
+        .filter(model => model.startsWith('gemini'));
+      
+      console.log(`✅ [Gemini API] 사용 가능한 모델 ${availableModels.length}개 발견:`, availableModels.slice(0, 5).join(', '));
+    } else {
+      console.warn('⚠️ [Gemini API] 모델 목록 응답이 올바르지 않음');
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.error?.message || error.message;
+    const errorStatus = error.response?.status;
+    
+    // API 키 관련 에러면 명확하게 알림
+    if (errorStatus === 400 || errorStatus === 401 || errorStatus === 403) {
+      console.error(`❌ [Gemini API] API 키 인증 실패 (${errorStatus}): ${errorMsg}`);
+      throw new Error(`Gemini API key authentication failed: ${errorMsg}`);
+    }
+    
+    console.warn(`⚠️ [Gemini API] 모델 목록 조회 실패 (${errorStatus}), 기본 모델 목록 사용: ${errorMsg}`);
+  }
+
   // 저장소 정보 요약
   const repoSummary = {
     name: repoData.full_name || `${repoData.owner}/${repoData.repo}`,
@@ -428,13 +468,22 @@ Format your response in JSON with the following structure:
   }
 
   // v1 API만 사용 (v1beta는 최신 모델을 지원하지 않음)
-  // 여러 모델을 순차적으로 시도 (가장 기본적인 모델부터)
-  const models = [
+  // 사용 가능한 모델이 있으면 그것을 사용하고, 없으면 기본 모델 목록 사용
+  const defaultModels = [
     'gemini-pro', // 가장 기본적인 모델 (우선 시도)
     'gemini-1.0-pro', // v1.0 버전
     'gemini-1.5-flash', // 빠른 모델
     'gemini-1.5-pro', // 강력한 모델
   ];
+  
+  // 사용 가능한 모델이 있으면 우선 사용, 없으면 기본 모델 목록 사용
+  const models = availableModels.length > 0 ? availableModels : defaultModels;
+  
+  if (availableModels.length > 0) {
+    console.log(`📋 [Gemini API] 사용 가능한 모델 목록 사용: ${models.join(', ')}`);
+  } else {
+    console.log(`📋 [Gemini API] 기본 모델 목록 사용: ${models.join(', ')}`);
+  }
 
   let lastError = null;
 
