@@ -19,7 +19,6 @@ console.log('GITHUB_CLIENT_SECRET:', GITHUB_CLIENT_SECRET ? '설정됨' : '❌ �
 console.log('GITHUB_REDIRECT_URI:', GITHUB_REDIRECT_URI);
 console.log('CLIENT_URL:', CLIENT_URL);
 console.log('JWT_SECRET:', JWT_SECRET ? '설정됨' : '❌ 없음');
-console.log('CLIENT_URL:', CLIENT_URL);
 
 // GitHub OAuth 시작
 router.get('/github', (req, res) => {

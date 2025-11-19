@@ -73,6 +73,16 @@ app.use(session({
   }
 }));
 
+// 헬스 체크 엔드포인트 (가장 먼저 등록)
+app.get('/api/health', (req, res) => {
+  console.log('💚 [헬스 체크] 서버 상태 확인 요청을 받았습니다');
+  res.json({ 
+    status: 'OK', 
+    message: 'GitLog Server is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 라우트 설정
 app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRoutes);
@@ -93,16 +103,6 @@ app.get('*', (req, res, next) => {
       console.error('❌ [정적 파일] index.html 전달 중 오류가 발생했습니다:', err);
       next(err);
     }
-  });
-});
-
-// 헬스 체크 엔드포인트
-app.get('/api/health', (req, res) => {
-  console.log('💚 [헬스 체크] 서버 상태 확인 요청을 받았습니다');
-  res.json({ 
-    status: 'OK', 
-    message: 'GitLog Server is running',
-    timestamp: new Date().toISOString()
   });
 });
 
