@@ -76,10 +76,11 @@ app.use(session({
 // 헬스 체크 엔드포인트 (가장 먼저 등록)
 app.get('/api/health', (req, res) => {
   console.log('💚 [헬스 체크] 서버 상태 확인 요청을 받았습니다');
-  res.json({ 
+  res.status(200).json({ 
     status: 'OK', 
     message: 'GitLog Server is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    port: PORT
   });
 });
 
@@ -92,16 +93,20 @@ app.use('/api/ai', aiRoutes);
 // 정적 파일 제공 (React 빌드 결과)
 app.use(express.static(CLIENT_BUILD_PATH));
 
-// SPA 라우팅 대응
+// SPA 라우팅 대응 (모든 비-API 요청은 index.html 반환)
 app.get('*', (req, res, next) => {
+  // API 경로는 제외
   if (req.path.startsWith('/api')) {
     return next();
   }
 
+  console.log(`📄 [SPA 라우팅] ${req.path} 요청 - index.html 반환`);
   res.sendFile(path.join(CLIENT_BUILD_PATH, 'index.html'), (err) => {
     if (err) {
-      console.error('❌ [정적 파일] index.html 전달 중 오류가 발생했습니다:', err);
+      console.error('❌ [SPA 라우팅] index.html 전달 중 오류:', err.message);
       next(err);
+    } else {
+      console.log(`✅ [SPA 라우팅] ${req.path} - index.html 전달 성공`);
     }
   });
 });

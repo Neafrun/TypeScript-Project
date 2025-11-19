@@ -354,6 +354,13 @@ const ChatInput = styled.textarea`
     border-color: #ff6b35;
     box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.15);
   }
+  
+  &:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
 `;
 
 const ChatSubmitButton = styled.button`
@@ -362,6 +369,12 @@ const ChatSubmitButton = styled.button`
   color: white;
   border: none;
   padding: 0.75rem 1.6rem;
+  
+  &:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
   border-radius: 999px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -535,6 +548,8 @@ const RepositoryAnalysis = () => {
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [contributorList, setContributorList] = useState([]);
+  const [checkingContributor, setCheckingContributor] = useState(false);
   
   // URL 파라미터에서 레포지토리 정보 가져오기
   useEffect(() => {
@@ -572,6 +587,73 @@ const RepositoryAnalysis = () => {
   const filteredChatMessages = currentRepoKey
     ? chatMessages.filter((message) => message.repo === currentRepoKey)
     : [];
+  
+  // 레포지토리 기여자 목록 가져오기 (분석 데이터 또는 API에서)
+  useEffect(() => {
+    const fetchContributorList = async () => {
+      if (!repoInfo || !isLoggedIn) {
+        setContributorList([]);
+        return;
+      }
+      
+      setCheckingContributor(true);
+      
+      try {
+        // 1. 먼저 분석 데이터에서 기여자 목록 추출 시도
+        if (analysisData) {
+          const distribution = analysisData.contributionPattern?.distribution || 
+                               analysisData.contributionPattern?.metrics?.distribution || [];
+          
+          const contributors = distribution
+            .map(contributor => contributor.author || contributor.authorName || contributor.login)
+            .filter(Boolean);
+          
+          if (contributors.length > 0) {
+            setContributorList(contributors);
+            setCheckingContributor(false);
+            return;
+          }
+        }
+        
+        // 2. 분석 데이터에 기여자 정보가 없으면 GitHub API에서 직접 가져오기
+        try {
+          const baseEndpoint = isLoggedIn ? '/api/github' : '/api/repository';
+          const contributorsData = await apiGet(`${baseEndpoint}/repos/${repoInfo.owner}/${repoInfo.repo}/contributors`);
+          
+          const contributors = contributorsData
+            .map(contributor => contributor.login || contributor.author?.login)
+            .filter(Boolean);
+          
+          setContributorList(contributors);
+          console.log('✅ [기여자 확인] GitHub API에서 기여자 목록 가져옴:', contributors);
+        } catch (apiError) {
+          console.warn('⚠️ [기여자 확인] GitHub API에서 기여자 목록 가져오기 실패:', apiError);
+          setContributorList([]);
+        }
+      } catch (error) {
+        console.error('❌ [기여자 확인] 오류:', error);
+        setContributorList([]);
+      } finally {
+        setCheckingContributor(false);
+      }
+    };
+    
+    fetchContributorList();
+  }, [repoInfo, analysisData, isLoggedIn]);
+  
+  // 현재 사용자가 레포지토리 기여자인지 확인
+  const isCurrentUserContributor = () => {
+    if (!user?.login || !repoInfo) return false;
+    
+    const userLogin = user.login.toLowerCase();
+    
+    // 대소문자 구분 없이 확인
+    return contributorList.some(contributor => 
+      (contributor || '').toLowerCase() === userLogin
+    );
+  };
+  
+  const canUseChat = isCurrentUserContributor();
   
   // 디버깅용 로그
   console.log('🔍 [RepositoryAnalysis] 로그인 상태 확인:', {
@@ -616,6 +698,12 @@ const RepositoryAnalysis = () => {
   const handleChatSubmit = (event) => {
     event.preventDefault();
     if (!chatInput.trim() || !currentRepoKey) {
+      return;
+    }
+    
+    // 기여자만 메시지 전송 가능
+    if (!canUseChat) {
+      console.warn('⚠️ [채팅] 기여자가 아니므로 메시지를 보낼 수 없습니다.');
       return;
     }
 
@@ -1603,7 +1691,10 @@ const RepositoryAnalysis = () => {
               <ChatHeader>
                 <ChatTitle>팀 채팅 & 기록</ChatTitle>
                 <ChatDescription>
-                  저장소를 함께 사용하는 동료와 대화를 나누고 결정 사항을 남겨보세요.
+                  {canUseChat 
+                    ? '저장소를 함께 사용하는 동료와 대화를 나누고 결정 사항을 남겨보세요.'
+                    : '이 저장소의 기여자만 채팅을 사용할 수 있습니다.'
+                  }
                 </ChatDescription>
               </ChatHeader>
               <ChatMessages>
@@ -1622,21 +1713,46 @@ const RepositoryAnalysis = () => {
                 ) : (
                   <ChatMessage>
                     <ChatText>
-                      아직 남겨진 메시지가 없습니다. 첫 대화를 시작해보세요!
+                      {canUseChat 
+                        ? '아직 남겨진 메시지가 없습니다. 첫 대화를 시작해보세요!'
+                        : '이 저장소의 기여자만 메시지를 볼 수 있습니다.'
+                      }
                     </ChatText>
                   </ChatMessage>
                 )}
               </ChatMessages>
-              <ChatForm onSubmit={handleChatSubmit}>
-                <ChatInput
-                  value={chatInput}
-                  onChange={(event) => setChatInput(event.target.value)}
-                  placeholder="팀원들과 공유하고 싶은 메모나 아이디어를 입력하세요."
-                />
-                <ChatSubmitButton type="submit">
-                  메시지 남기기
-                </ChatSubmitButton>
-              </ChatForm>
+              {!isLoggedIn ? (
+                <ChatMessage>
+                  <ChatText style={{ textAlign: 'center', color: '#dc2626' }}>
+                    채팅 기능을 사용하려면 GitHub 로그인이 필요합니다.
+                  </ChatText>
+                </ChatMessage>
+              ) : checkingContributor ? (
+                <ChatMessage>
+                  <ChatText style={{ textAlign: 'center', color: '#666' }}>
+                    기여자 확인 중...
+                  </ChatText>
+                </ChatMessage>
+              ) : !canUseChat ? (
+                <ChatMessage>
+                  <ChatText style={{ textAlign: 'center', color: '#dc2626' }}>
+                    이 저장소의 기여자가 아니므로 채팅 기능을 사용할 수 없습니다. 
+                    저장소에 커밋을 하면 기여자로 인식됩니다.
+                  </ChatText>
+                </ChatMessage>
+              ) : (
+                <ChatForm onSubmit={handleChatSubmit}>
+                  <ChatInput
+                    value={chatInput}
+                    onChange={(event) => setChatInput(event.target.value)}
+                    placeholder="팀원들과 공유하고 싶은 메모나 아이디어를 입력하세요."
+                    disabled={!canUseChat}
+                  />
+                  <ChatSubmitButton type="submit" disabled={!canUseChat}>
+                    메시지 남기기
+                  </ChatSubmitButton>
+                </ChatForm>
+              )}
             </ChatSection>
           )}
         </>
