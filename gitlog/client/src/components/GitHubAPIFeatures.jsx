@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
@@ -119,47 +119,64 @@ const GitHubAPIFeatures = ({ repoInfo, isLoggedIn }) => {
   const [releases, setReleases] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const fetchedRepoRef = useRef(null);
   const { t } = useTranslation();
 
+  const owner = repoInfo?.owner;
+  const repo = repoInfo?.repo;
+
   useEffect(() => {
-    console.log('🔍 [GitHubAPIFeatures] useEffect 실행:', {
-      isLoggedIn: isLoggedIn,
-      repoInfo: repoInfo
-    });
+    if (!isLoggedIn || !owner || !repo) {
+      setLoading(false);
+      return;
+    }
+
+    const currentRepoKey = `${owner}/${repo}`;
     
-    if (isLoggedIn && repoInfo) {
-      console.log('🔄 [GitHubAPIFeatures] GitHub API 데이터 가져오기 시작');
-      fetchGitHubAPIData();
-    } else {
-      console.log('⏹️ [GitHubAPIFeatures] 로그인되지 않았거나 repoInfo가 없음');
-      setLoading(false);
+    // 이미 같은 저장소의 데이터를 불러왔으면 다시 불러오지 않음
+    if (fetchedRepoRef.current === currentRepoKey) {
+      return;
     }
-  }, [isLoggedIn, repoInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchGitHubAPIData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    const fetchGitHubAPIData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        fetchedRepoRef.current = currentRepoKey; // 현재 저장소 키 저장
 
-      const [prs, issuesData, workflowsData, releasesData] = await Promise.allSettled([
-        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/pulls`),
-        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/issues`),
-        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/actions/workflows`),
-        apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/releases`)
-      ]);
+        console.log('🔄 [GitHubAPIFeatures] GitHub API 데이터 가져오기 시작:', currentRepoKey);
 
-      if (prs.status === 'fulfilled') setPullRequests(prs.value);
-      if (issuesData.status === 'fulfilled') setIssues(issuesData.value);
-      if (workflowsData.status === 'fulfilled') setWorkflows(workflowsData.value);
-      if (releasesData.status === 'fulfilled') setReleases(releasesData.value);
+        const [prs, issuesData, workflowsData, releasesData] = await Promise.allSettled([
+          apiGet(`/api/github/repos/${owner}/${repo}/pulls`),
+          apiGet(`/api/github/repos/${owner}/${repo}/issues`),
+          apiGet(`/api/github/repos/${owner}/${repo}/actions/workflows`),
+          apiGet(`/api/github/repos/${owner}/${repo}/releases`)
+        ]);
 
-    } catch (err) {
-      console.error('GitHub API 데이터 가져오기 실패:', err);
-      setError('GitHub API 데이터를 가져오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
+        if (prs.status === 'fulfilled') setPullRequests(prs.value);
+        if (issuesData.status === 'fulfilled') setIssues(issuesData.value);
+        if (workflowsData.status === 'fulfilled') setWorkflows(workflowsData.value);
+        if (releasesData.status === 'fulfilled') setReleases(releasesData.value);
+
+      } catch (err) {
+        console.error('GitHub API 데이터 가져오기 실패:', err);
+        setError('GitHub API 데이터를 가져오는 중 오류가 발생했습니다.');
+        fetchedRepoRef.current = null; // 에러 발생 시 다시 시도할 수 있도록
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // 저장소가 변경되면 데이터 초기화
+    if (fetchedRepoRef.current !== currentRepoKey) {
+      setPullRequests(null);
+      setIssues(null);
+      setWorkflows(null);
+      setReleases(null);
     }
-  };
+
+    fetchGitHubAPIData();
+  }, [isLoggedIn, owner, repo]);
 
   if (!isLoggedIn) {
     return null; // 로그인하지 않은 경우 표시하지 않음

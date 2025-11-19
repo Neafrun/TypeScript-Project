@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useTranslation } from '../hooks/useTranslation';
 import { apiGet } from '../api/client';
@@ -84,28 +84,44 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const fetchedRepoRef = useRef(null);
   const { t } = useTranslation();
 
-  useEffect(() => {
-    if (repoInfo) {
-      fetchWorkflowsData();
-    }
-  }, [repoInfo]);
+  const owner = repoInfo?.owner;
+  const repo = repoInfo?.repo;
 
-  const fetchWorkflowsData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await apiGet(`/api/github/repos/${repoInfo.owner}/${repoInfo.repo}/actions/workflows`);
-      setData(response);
-    } catch (err) {
-      console.error('Workflows 데이터 가져오기 실패:', err);
-      setError('Workflows 데이터를 가져오는 중 오류가 발생했습니다.');
-    } finally {
+  useEffect(() => {
+    if (!owner || !repo) {
       setLoading(false);
+      return;
     }
-  };
+
+    const repoKey = `${owner}/${repo}`;
+    
+    // 이미 같은 저장소의 데이터를 불러왔으면 다시 불러오지 않음
+    if (fetchedRepoRef.current === repoKey) {
+      return;
+    }
+
+    const fetchWorkflowsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        fetchedRepoRef.current = repoKey;
+        
+        const response = await apiGet(`/api/github/repos/${owner}/${repo}/actions/workflows`);
+        setData(response);
+      } catch (err) {
+        console.error('Workflows 데이터 가져오기 실패:', err);
+        setError('Workflows 데이터를 가져오는 중 오류가 발생했습니다.');
+        fetchedRepoRef.current = null;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWorkflowsData();
+  }, [owner, repo]);
 
   if (loading) {
     return (
