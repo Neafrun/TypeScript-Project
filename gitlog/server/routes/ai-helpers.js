@@ -428,8 +428,13 @@ Format your response in JSON with the following structure:
   }
 
   try {
+    // 최신 Gemini 모델 사용 (gemini-1.5-flash 또는 gemini-1.5-pro)
+    // v1beta에서는 gemini-pro가 지원되지 않으므로 gemini-1.5-flash 사용
+    const modelName = 'gemini-1.5-flash';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      apiUrl,
       {
         contents: [{
           parts: [{
@@ -458,11 +463,14 @@ Format your response in JSON with the following structure:
 
     return {
       rawResponse: content,
-      model: 'gemini-pro',
+      model: modelName,
       analysisType: analysisType
     };
   } catch (error) {
     console.error('Gemini API 오류:', error.response?.data || error.message);
+    if (error.response?.data?.error) {
+      throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
+    }
     throw new Error(`Gemini API error: ${error.message}`);
   }
 };
