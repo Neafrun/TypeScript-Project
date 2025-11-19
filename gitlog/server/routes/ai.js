@@ -78,7 +78,14 @@ const callGitHubAPI = async (url, accessToken) => {
 // AI 분석 엔드포인트 (인증 필요)
 router.post('/analyze', authenticateToken, async (req, res) => {
   try {
-    const { owner, repo, model = 'openai', analysisType = 'general' } = req.body;
+    // 사용 가능한 API 키에 따라 기본 모델 자동 선택
+    const defaultModel = process.env.OPENAI_API_KEY ? 'openai' : 
+                        process.env.GEMINI_API_KEY ? 'gemini' : 'openai';
+    let { owner, repo, model, analysisType = 'general' } = req.body;
+    // model이 지정되지 않았으면 기본 모델 사용
+    if (!model) {
+      model = defaultModel;
+    }
     const accessToken = req.user.githubAccessToken;
 
     console.log(`🤖 [AI 분석] ${owner}/${repo} 분석을 시작합니다 (모델: ${model}, 유형: ${analysisType})`);
@@ -213,7 +220,14 @@ router.post('/public/analyze', async (req, res) => {
     console.log('📥 [공개 AI 분석] 요청 본문:', JSON.stringify(req.body, null, 2));
     console.log('📥 [공개 AI 분석] 요청 헤더:', req.headers);
     
-    const { owner, repo, model = 'openai', analysisType = 'general' } = req.body;
+    // 사용 가능한 API 키에 따라 기본 모델 자동 선택
+    const defaultModel = process.env.OPENAI_API_KEY ? 'openai' : 
+                        process.env.GEMINI_API_KEY ? 'gemini' : 'openai';
+    let { owner, repo, model, analysisType = 'general' } = req.body;
+    // model이 지정되지 않았으면 기본 모델 사용
+    if (!model) {
+      model = defaultModel;
+    }
 
     console.log(`🤖 [공개 AI 분석] ${owner}/${repo} 분석을 시작합니다 (모델: ${model}, 유형: ${analysisType})`);
 
