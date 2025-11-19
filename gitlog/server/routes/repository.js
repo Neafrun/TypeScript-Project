@@ -89,28 +89,121 @@ const buildContributorStats = (contributors) => {
   return sanitized;
 };
 
+// 실제 커밋 데이터에서 작성자 통계 계산
+const calculateContributorsFromCommits = async (owner, repo, accessToken) => {
+  try {
+    console.log(`🔄 [커밋 기반 통계] ${owner}/${repo} 커밋 데이터에서 작성자 통계를 계산합니다`);
+    
+    const contributorMap = new Map();
+    let page = 1;
+    let hasMore = true;
+    const maxPages = 50; // 최대 50페이지 (5000개 커밋)
+
+    while (hasMore && page <= maxPages) {
+      const commitsData = await callGitHubAPI(
+        `https://api.github.com/repos/${owner}/${repo}/commits?per_page=100&page=${page}`,
+        accessToken
+      );
+
+      if (!Array.isArray(commitsData) || commitsData.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      for (const commit of commitsData) {
+        // 작성자 정보 추출
+        const author = commit.author || commit.commit?.author;
+        const authorLogin = author?.login || null;
+        const authorName = commit.commit?.author?.name || null;
+        const avatarUrl = author?.avatar_url || null;
+
+        // 로그인이 있으면 로그인을 우선 사용, 없으면 이름 사용
+        const contributorKey = authorLogin || authorName;
+        
+        if (contributorKey) {
+          if (!contributorMap.has(contributorKey)) {
+            contributorMap.set(contributorKey, {
+              author: authorLogin || authorName,
+              authorName: authorLogin || authorName,
+              login: authorLogin,
+              avatar: avatarUrl,
+              avatar_url: avatarUrl,
+              commits: 0,
+              total: 0,
+              additions: 0,
+              deletions: 0,
+              weeks: []
+            });
+          }
+          const contributor = contributorMap.get(contributorKey);
+          contributor.commits++;
+          contributor.total++;
+        }
+      }
+
+      // 더 많은 커밋이 있는지 확인
+      if (commitsData.length < 100) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+
+    // Map을 배열로 변환하고 정렬
+    const contributors = Array.from(contributorMap.values());
+    const totalCommits = contributors.reduce((sum, c) => sum + c.commits, 0);
+    
+    contributors.forEach((contributor) => {
+      contributor.percentage = totalCommits > 0
+        ? Math.round((contributor.commits / totalCommits) * 100 * 100) / 100
+        : 0;
+    });
+
+    contributors.sort((a, b) => b.commits - a.commits);
+
+    console.log(`✅ [커밋 기반 통계] ${owner}/${repo} ${contributors.length}명의 기여자를 찾았습니다 (총 ${totalCommits}개 커밋)`);
+    return contributors;
+  } catch (error) {
+    console.error(`❌ [커밋 기반 통계] ${owner}/${repo} 커밋 데이터에서 통계 계산 실패:`, error.message);
+    return [];
+  }
+};
+
 const fetchContributorDistribution = async (owner, repo, accessToken) => {
-  // 1차 시도: stats/contributors
+  // 1차 시도: stats/contributors (가장 정확)
   try {
     const statsData = await callGitHubAPI(
       `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
       accessToken
     );
     if (Array.isArray(statsData) && statsData.length > 0) {
+      console.log(`✅ [기여자 통계] ${owner}/${repo} stats/contributors API 성공 (${statsData.length}명)`);
       return buildContributorStats(statsData);
     }
     console.warn(`⚠️ [${owner}/${repo}] stats/contributors 응답이 비어 있습니다. 보조 엔드포인트를 시도합니다.`);
   } catch (error) {
-    console.warn(`⚠️ [${owner}/${repo}] stats/contributors 호출 실패, 보조 엔드포인트 사용:`, error.response?.status || error.message);
+    if (error.response?.status === 202) {
+      console.warn(`⚠️ [${owner}/${repo}] stats/contributors가 계산 중입니다 (202). 커밋 데이터에서 직접 계산합니다.`);
+    } else {
+      console.warn(`⚠️ [${owner}/${repo}] stats/contributors 호출 실패, 보조 엔드포인트 사용:`, error.response?.status || error.message);
+    }
   }
 
-  // 2차 시도: /contributors (빠르게 응답)
+  // 2차 시도: 실제 커밋 데이터에서 작성자 통계 계산 (가장 정확함)
+  const contributorsFromCommits = await calculateContributorsFromCommits(owner, repo, accessToken);
+  if (contributorsFromCommits.length > 0) {
+    console.log(`✅ [기여자 통계] ${owner}/${repo} 커밋 데이터에서 계산 성공 (${contributorsFromCommits.length}명)`);
+    return contributorsFromCommits;
+  }
+
+  // 3차 시도: /contributors (빠르지만 정확도 낮음)
   try {
     const contributorsData = await callGitHubAPI(
       `https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`,
       accessToken
     );
     if (Array.isArray(contributorsData) && contributorsData.length > 0) {
+      console.log(`✅ [기여자 통계] ${owner}/${repo} contributors API 성공 (${contributorsData.length}명)`);
       return buildContributorStats(contributorsData);
     }
     console.warn(`⚠️ [${owner}/${repo}] contributors 엔드포인트도 데이터가 비어 있습니다.`);
@@ -118,6 +211,7 @@ const fetchContributorDistribution = async (owner, repo, accessToken) => {
     console.warn(`⚠️ [${owner}/${repo}] contributors 엔드포인트 호출 실패:`, error.response?.status || error.message);
   }
 
+  console.error(`❌ [기여자 통계] ${owner}/${repo} 모든 방법 실패`);
   return [];
 };
 

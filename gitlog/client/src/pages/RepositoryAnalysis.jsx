@@ -605,30 +605,53 @@ const RepositoryAnalysis = () => {
                                analysisData.contributionPattern?.metrics?.distribution || [];
           
           const contributors = distribution
-            .map(contributor => contributor.author || contributor.authorName || contributor.login)
+            .map(contributor => {
+              // author, authorName, login 모두 확인
+              return contributor.author || contributor.authorName || contributor.login;
+            })
             .filter(Boolean);
           
           if (contributors.length > 0) {
             setContributorList(contributors);
+            console.log('✅ [기여자 확인] 분석 데이터에서 기여자 목록 가져옴:', contributors);
             setCheckingContributor(false);
             return;
           }
         }
         
-        // 2. 분석 데이터에 기여자 정보가 없으면 GitHub API에서 직접 가져오기
+        // 2. 분석 데이터에 기여자 정보가 없으면 커밋 통계 API에서 가져오기 (실제 커밋 데이터 기반)
         try {
-          const baseEndpoint = isLoggedIn ? '/api/github' : '/api/repository';
-          const contributorsData = await apiGet(`${baseEndpoint}/repos/${repoInfo.owner}/${repoInfo.repo}/contributors`);
+          const baseEndpoint = isLoggedIn ? '/api/repository' : '/api/repository';
+          const contributorsData = await apiGet(`${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
           
+          // contributorsData가 배열이고 각 항목에 author 또는 authorName이 있는 경우
           const contributors = contributorsData
-            .map(contributor => contributor.login || contributor.author?.login)
+            .map(contributor => {
+              // author, authorName, login 순으로 확인
+              return contributor.author || contributor.authorName || contributor.login;
+            })
             .filter(Boolean);
           
           setContributorList(contributors);
-          console.log('✅ [기여자 확인] GitHub API에서 기여자 목록 가져옴:', contributors);
+          console.log('✅ [기여자 확인] 커밋 통계 API에서 기여자 목록 가져옴:', contributors);
         } catch (apiError) {
-          console.warn('⚠️ [기여자 확인] GitHub API에서 기여자 목록 가져오기 실패:', apiError);
-          setContributorList([]);
+          console.warn('⚠️ [기여자 확인] 커밋 통계 API에서 기여자 목록 가져오기 실패, 대체 방법 시도:', apiError);
+          
+          // 3. 대체 방법: GitHub API에서 직접 가져오기
+          try {
+            const baseEndpoint = isLoggedIn ? '/api/github' : '/api/repository';
+            const contributorsData = await apiGet(`${baseEndpoint}/repos/${repoInfo.owner}/${repoInfo.repo}/contributors`);
+            
+            const contributors = contributorsData
+              .map(contributor => contributor.login || contributor.author?.login || contributor.authorName)
+              .filter(Boolean);
+            
+            setContributorList(contributors);
+            console.log('✅ [기여자 확인] GitHub API에서 기여자 목록 가져옴:', contributors);
+          } catch (fallbackError) {
+            console.warn('⚠️ [기여자 확인] GitHub API에서도 기여자 목록 가져오기 실패:', fallbackError);
+            setContributorList([]);
+          }
         }
       } catch (error) {
         console.error('❌ [기여자 확인] 오류:', error);
@@ -645,12 +668,18 @@ const RepositoryAnalysis = () => {
   const isCurrentUserContributor = () => {
     if (!user?.login || !repoInfo) return false;
     
-    const userLogin = user.login.toLowerCase();
+    const userLogin = (user.login || '').toLowerCase().trim();
     
-    // 대소문자 구분 없이 확인
-    return contributorList.some(contributor => 
-      (contributor || '').toLowerCase() === userLogin
-    );
+    // 대소문자 구분 없이 확인, 여러 필드 확인
+    return contributorList.some(contributor => {
+      if (!contributor) return false;
+      
+      const contributorLower = String(contributor).toLowerCase().trim();
+      
+      // 정확히 일치하거나, @ 없이도 일치하는지 확인
+      return contributorLower === userLogin || 
+             contributorLower.replace('@', '') === userLogin.replace('@', '');
+    });
   };
   
   const canUseChat = isCurrentUserContributor();
