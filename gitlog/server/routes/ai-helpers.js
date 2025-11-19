@@ -427,52 +427,85 @@ Format your response in JSON with the following structure:
 }`;
   }
 
-  try {
-    // 최신 Gemini 모델 사용 (gemini-1.5-flash 또는 gemini-1.5-pro)
-    // v1beta에서는 gemini-pro가 지원되지 않으므로 gemini-1.5-flash 사용
-    const modelName = 'gemini-1.5-flash';
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-    
-    const response = await axios.post(
-      apiUrl,
-      {
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }]
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+  // 여러 모델과 API 버전을 순차적으로 시도
+  const modelVersions = [
+    { model: 'gemini-1.5-flash', version: 'v1' },
+    { model: 'gemini-1.5-flash-latest', version: 'v1' },
+    { model: 'gemini-1.5-flash', version: 'v1beta' },
+    { model: 'gemini-1.5-pro', version: 'v1' },
+    { model: 'gemini-1.5-pro-latest', version: 'v1' },
+    { model: 'gemini-1.5-pro', version: 'v1beta' },
+  ];
 
-    const content = response.data.candidates[0].content.parts[0].text;
-    
-    // JSON 파싱 시도
+  let lastError = null;
+
+  for (const { model, version } of modelVersions) {
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-    } catch (parseError) {
-      console.warn('Failed to parse JSON, returning text response');
-    }
+      const apiUrl = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
+      
+      console.log(`🔄 [Gemini API] ${version}/${model} 모델 시도 중...`);
+      
+      const response = await axios.post(
+        apiUrl,
+        {
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000 // 30초 타임아웃
+        }
+      );
 
-    return {
-      rawResponse: content,
-      model: modelName,
-      analysisType: analysisType
-    };
-  } catch (error) {
-    console.error('Gemini API 오류:', error.response?.data || error.message);
-    if (error.response?.data?.error) {
-      throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
+      const content = response.data.candidates[0].content.parts[0].text;
+      
+      console.log(`✅ [Gemini API] ${version}/${model} 모델로 성공적으로 분석 완료`);
+      
+      // JSON 파싱 시도
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]);
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse JSON, returning text response');
+      }
+
+      return {
+        rawResponse: content,
+        model: `${version}/${model}`,
+        analysisType: analysisType
+      };
+    } catch (error) {
+      lastError = error;
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      console.warn(`⚠️ [Gemini API] ${version}/${model} 모델 실패: ${errorMsg}`);
+      
+      // 404가 아닌 다른 에러면 중단
+      if (error.response?.status !== 404) {
+        console.error('Gemini API 오류:', error.response?.data || error.message);
+        if (error.response?.data?.error) {
+          throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
+        }
+        throw new Error(`Gemini API error: ${error.message}`);
+      }
+      
+      // 404면 다음 모델 시도
+      continue;
     }
-    throw new Error(`Gemini API error: ${error.message}`);
   }
+
+  // 모든 모델 시도 실패
+  console.error('Gemini API 오류: 모든 모델 시도 실패', lastError?.response?.data || lastError?.message);
+  if (lastError?.response?.data?.error) {
+    throw new Error(`Gemini API error: 모든 모델 시도 실패 - ${lastError.response.data.error.message || lastError.message}`);
+  }
+  throw new Error(`Gemini API error: 모든 모델 시도 실패 - ${lastError?.message || 'Unknown error'}`);
 };
 
 module.exports = {
