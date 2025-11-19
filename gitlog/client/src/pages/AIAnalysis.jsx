@@ -686,12 +686,12 @@ const AIAnalysis = () => {
       const isAuthenticated = user && user.login;
       const endpoint = isAuthenticated ? '/api/ai/analyze' : '/api/ai/public/analyze';
 
-      console.log(` [AI 분석] ${repoInfo.owner}/${repoInfo.repo} 분석 시작 (ChatGPT, 유형: ${analysisType})`);
+      console.log(` [AI 분석] ${repoInfo.owner}/${repoInfo.repo} 분석 시작 (유형: ${analysisType})`);
 
       const response = await apiPost(endpoint, {
         owner: repoInfo.owner,
         repo: repoInfo.repo,
-        model: 'openai',
+        // model을 지정하지 않으면 백엔드에서 사용 가능한 API 키에 따라 자동 선택
         analysisType
       });
 
