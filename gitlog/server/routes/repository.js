@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+
+// AI 분석 함수 가져오기 (ai.js에서)
+const { analyzeWithOpenAI, analyzeWithGemini } = require('./ai-helpers');
 
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
@@ -688,13 +692,13 @@ router.get('/all-commits/:owner/:repo', authenticateToken, async (req, res) => {
   }
 });
 
-// 공개 레포지토리 분석 수행
+// 공개 레포지토리 분석 수행 (AI 기반)
 router.post('/public/analyze', async (req, res) => {
   try {
     const { owner, repo, commits, contributors } = req.body;
 
-    console.log(`🔄 [공개 레포지토리 분석] ${owner}/${repo} 분석을 시작합니다`);
-    console.log('🔍 [공개 분석 API] 요청 데이터 확인:', {
+    console.log(`🔄 [공개 레포지토리 AI 분석] ${owner}/${repo} 분석을 시작합니다`);
+    console.log('🔍 [공개 AI 분석 API] 요청 데이터 확인:', {
       commits: commits ? commits.length : 0,
       contributors: contributors ? contributors.length : 0,
       contributorsData: contributors
@@ -704,80 +708,283 @@ router.post('/public/analyze', async (req, res) => {
       return res.status(400).json({ error: '분석할 커밋 데이터가 없습니다' });
     }
 
+    // AI API 키 확인
+    const useAI = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+    const aiModel = process.env.OPENAI_API_KEY ? 'openai' : 'gemini';
+    
+    if (!useAI) {
+      console.warn('⚠️ [AI 분석] API 키가 설정되지 않았습니다. 기본 분석으로 대체합니다.');
+      // AI API 키가 없으면 기본 분석 로직 사용
+      return await performBasicAnalysis(req, res, owner, repo, commits, contributors, false);
+    }
+
     // 메모리 사용량 체크
     const memUsage = process.memoryUsage();
     console.log(`📊 [메모리 사용량] 분석 시작 시: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
 
-    // 타임아웃 설정 (30초)
+    // 레포지토리 정보 가져오기 (AI 분석에 필요한 정보 포함)
+    let repoData;
+    try {
+      repoData = await callGitHubAPI(
+        `https://api.github.com/repos/${owner}/${repo}`,
+        null // 공개 API는 토큰 없이도 가능
+      );
+      console.log(`✅ [레포지토리 정보] ${owner}/${repo} 정보를 가져왔습니다`);
+    } catch (error) {
+      console.warn(`⚠️ [레포지토리 정보] ${owner}/${repo} 정보를 가져오지 못했습니다. 기본 정보로 대체합니다.`, error.message);
+      // 레포지토리 정보를 가져오지 못하면 기본 정보 사용
+      repoData = {
+        owner: owner,
+        repo: repo,
+        full_name: `${owner}/${repo}`,
+        description: '',
+        language: null,
+        stargazers_count: 0,
+        forks_count: 0,
+        open_issues_count: 0,
+        created_at: null,
+        updated_at: null
+      };
+    }
+
+    // 타임아웃 설정 (60초 - AI API 호출 시간 고려)
     const analysisPromise = new Promise(async (resolve, reject) => {
       try {
-        // 1. 코드 품질 분석
-        const codeQuality = analyzeCodeQuality(commits, contributors);
+        console.log(`🤖 [AI 분석] ${aiModel} 모델을 사용하여 분석을 시작합니다...`);
         
-        // 2. 기여 패턴 분석
-        const contributionPattern = analyzeContributionPattern(contributors);
-        
-        // 3. 활동 수준 분석
-        const activityLevel = analyzeActivityLevel(commits);
-        
-        // 4. 추천사항 생성
-        const recommendations = generateRecommendations(codeQuality, contributionPattern, activityLevel);
+        let aiAnalysis;
+        if (aiModel === 'openai') {
+          aiAnalysis = await analyzeWithOpenAI(repoData, commits, contributors, 'general', []);
+        } else {
+          aiAnalysis = await analyzeWithGemini(repoData, commits, contributors, 'general', []);
+        }
 
-        const analysis = {
-          codeQuality,
-          contributionPattern,
-          activityLevel,
-          recommendations
-        };
+        console.log(`✅ [AI 분석] ${aiModel} 분석 완료`);
+
+        // AI 분석 결과를 기존 형식으로 변환
+        let analysis = {};
+        
+        if (aiAnalysis.codeQuality) {
+          // AI가 전체 구조를 반환한 경우
+          analysis = aiAnalysis;
+        } else {
+          // AI 분석 결과가 다른 형식인 경우, 기본 분석으로 병합
+          const basicCodeQuality = analyzeCodeQuality(commits, contributors);
+          const basicContributionPattern = analyzeContributionPattern(contributors);
+          const basicActivityLevel = analyzeActivityLevel(commits);
+          const basicRecommendations = generateRecommendations(basicCodeQuality, basicContributionPattern, basicActivityLevel);
+          
+          // AI 분석 결과와 기본 분석 결과 병합
+          analysis = {
+            codeQuality: aiAnalysis.codeQuality || basicCodeQuality,
+            contributionPattern: aiAnalysis.contributionPattern || basicContributionPattern,
+            activityLevel: aiAnalysis.activityLevel || basicActivityLevel,
+            recommendations: aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 
+              ? aiAnalysis.recommendations 
+              : basicRecommendations,
+            aiInsights: aiAnalysis.overview || aiAnalysis.summary || aiAnalysis.feedback || null
+          };
+        }
 
         resolve(analysis);
       } catch (error) {
-        reject(error);
+        console.error('AI 분석 오류:', error);
+        // AI 분석 실패 시 기본 분석으로 폴백
+        console.log('⚠️ [AI 분석 실패] 기본 분석으로 대체합니다.');
+        const basicCodeQuality = analyzeCodeQuality(commits, contributors);
+        const basicContributionPattern = analyzeContributionPattern(contributors);
+        const basicActivityLevel = analyzeActivityLevel(commits);
+        const basicRecommendations = generateRecommendations(basicCodeQuality, basicContributionPattern, basicActivityLevel);
+        
+        resolve({
+          codeQuality: basicCodeQuality,
+          contributionPattern: basicContributionPattern,
+          activityLevel: basicActivityLevel,
+          recommendations: basicRecommendations,
+          aiError: error.message
+        });
       }
     });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('분석 시간 초과')), 30000)
+      setTimeout(() => reject(new Error('분석 시간 초과')), 60000)
     );
 
     const analysis = await Promise.race([analysisPromise, timeoutPromise]);
 
-    console.log(`✅ [공개 레포지토리 분석] ${owner}/${repo} 분석이 완료되었습니다`);
+    console.log(`✅ [공개 레포지토리 AI 분석] ${owner}/${repo} 분석이 완료되었습니다`);
 
     res.json({ analysis });
   } catch (error) {
-    console.error('공개 레포지토리 분석 오류:', error);
+    console.error('공개 레포지토리 AI 분석 오류:', error);
     
     let errorMessage = '레포지토리 분석 중 오류가 발생했습니다';
     if (error.message.includes('시간 초과') || error.message.includes('timeout')) {
       errorMessage = '분석 시간이 초과되었습니다. 레포지토리가 너무 크거나 복잡할 수 있습니다.';
     } else if (error.message.includes('memory') || error.message.includes('메모리')) {
       errorMessage = '메모리 부족으로 인해 분석을 완료할 수 없습니다.';
+    } else if (error.message.includes('API key')) {
+      errorMessage = 'AI API 키가 설정되지 않았거나 유효하지 않습니다. 환경 변수를 확인해주세요.';
     }
     
     res.status(500).json({ 
       error: errorMessage,
       details: error.message,
       debug: {
-        type: 'analysis_error',
+        type: 'ai_analysis_error',
         message: error.message
       }
     });
   }
 });
 
-// 레포지토리 분석 수행
+// 레포지토리 분석 수행 (AI 기반)
 router.post('/analyze', authenticateToken, async (req, res) => {
   try {
     const { owner, repo, commits, contributors } = req.body;
 
-    console.log(`🔄 [레포지토리 분석] ${owner}/${repo} 분석을 시작합니다`);
+    console.log(`🔄 [레포지토리 AI 분석] ${owner}/${repo} 분석을 시작합니다`);
 
     if (!commits || commits.length === 0) {
       return res.status(400).json({ error: '분석할 커밋 데이터가 없습니다' });
     }
 
+    // AI API 키 확인
+    const useAI = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+    const aiModel = process.env.OPENAI_API_KEY ? 'openai' : 'gemini';
+    
+    if (!useAI) {
+      console.warn('⚠️ [AI 분석] API 키가 설정되지 않았습니다. 기본 분석으로 대체합니다.');
+      // AI API 키가 없으면 기본 분석 로직 사용
+      return await performBasicAnalysis(req, res, owner, repo, commits, contributors, true);
+    }
+
     // 메모리 사용량 체크
+    const memUsage = process.memoryUsage();
+    console.log(`📊 [메모리 사용량] 분석 시작 시: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
+
+    // 레포지토리 정보 가져오기 (AI 분석에 필요한 정보 포함)
+    const accessToken = req.user.githubAccessToken;
+    let repoData;
+    try {
+      repoData = await callGitHubAPI(
+        `https://api.github.com/repos/${owner}/${repo}`,
+        accessToken
+      );
+      console.log(`✅ [레포지토리 정보] ${owner}/${repo} 정보를 가져왔습니다`);
+    } catch (error) {
+      console.warn(`⚠️ [레포지토리 정보] ${owner}/${repo} 정보를 가져오지 못했습니다. 기본 정보로 대체합니다.`, error.message);
+      // 레포지토리 정보를 가져오지 못하면 기본 정보 사용
+      repoData = {
+        owner: owner,
+        repo: repo,
+        full_name: `${owner}/${repo}`,
+        description: '',
+        language: null,
+        stargazers_count: 0,
+        forks_count: 0,
+        open_issues_count: 0,
+        created_at: null,
+        updated_at: null
+      };
+    }
+
+    // 타임아웃 설정 (60초 - AI API 호출 시간 고려)
+    const analysisPromise = new Promise(async (resolve, reject) => {
+      try {
+        console.log(`🤖 [AI 분석] ${aiModel} 모델을 사용하여 분석을 시작합니다...`);
+        
+        let aiAnalysis;
+        if (aiModel === 'openai') {
+          aiAnalysis = await analyzeWithOpenAI(repoData, commits, contributors, 'general', []);
+        } else {
+          aiAnalysis = await analyzeWithGemini(repoData, commits, contributors, 'general', []);
+        }
+
+        console.log(`✅ [AI 분석] ${aiModel} 분석 완료`);
+
+        // AI 분석 결과를 기존 형식으로 변환
+        let analysis = {};
+        
+        if (aiAnalysis.codeQuality) {
+          // AI가 전체 구조를 반환한 경우
+          analysis = aiAnalysis;
+        } else {
+          // AI 분석 결과가 다른 형식인 경우, 기본 분석으로 병합
+          const basicCodeQuality = analyzeCodeQuality(commits, contributors);
+          const basicContributionPattern = analyzeContributionPattern(contributors);
+          const basicActivityLevel = analyzeActivityLevel(commits);
+          const basicRecommendations = generateRecommendations(basicCodeQuality, basicContributionPattern, basicActivityLevel);
+          
+          // AI 분석 결과와 기본 분석 결과 병합
+          analysis = {
+            codeQuality: aiAnalysis.codeQuality || basicCodeQuality,
+            contributionPattern: aiAnalysis.contributionPattern || basicContributionPattern,
+            activityLevel: aiAnalysis.activityLevel || basicActivityLevel,
+            recommendations: aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 
+              ? aiAnalysis.recommendations 
+              : basicRecommendations,
+            aiInsights: aiAnalysis.overview || aiAnalysis.summary || aiAnalysis.feedback || null
+          };
+        }
+
+        resolve(analysis);
+      } catch (error) {
+        console.error('AI 분석 오류:', error);
+        // AI 분석 실패 시 기본 분석으로 폴백
+        console.log('⚠️ [AI 분석 실패] 기본 분석으로 대체합니다.');
+        const basicCodeQuality = analyzeCodeQuality(commits, contributors);
+        const basicContributionPattern = analyzeContributionPattern(contributors);
+        const basicActivityLevel = analyzeActivityLevel(commits);
+        const basicRecommendations = generateRecommendations(basicCodeQuality, basicContributionPattern, basicActivityLevel);
+        
+        resolve({
+          codeQuality: basicCodeQuality,
+          contributionPattern: basicContributionPattern,
+          activityLevel: basicActivityLevel,
+          recommendations: basicRecommendations,
+          aiError: error.message
+        });
+      }
+    });
+
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('분석 시간 초과')), 60000)
+    );
+
+    const analysis = await Promise.race([analysisPromise, timeoutPromise]);
+
+    console.log(`✅ [레포지토리 AI 분석] ${owner}/${repo} 분석이 완료되었습니다`);
+
+    res.json({ analysis });
+  } catch (error) {
+    console.error('레포지토리 AI 분석 오류:', error);
+    
+    let errorMessage = '레포지토리 분석 중 오류가 발생했습니다';
+    if (error.message.includes('시간 초과') || error.message.includes('timeout')) {
+      errorMessage = '분석 시간이 초과되었습니다. 레포지토리가 너무 크거나 복잡할 수 있습니다.';
+    } else if (error.message.includes('memory') || error.message.includes('메모리')) {
+      errorMessage = '메모리 부족으로 인해 분석을 완료할 수 없습니다.';
+    } else if (error.message.includes('API key')) {
+      errorMessage = 'AI API 키가 설정되지 않았거나 유효하지 않습니다. 환경 변수를 확인해주세요.';
+    }
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      details: error.message,
+      debug: {
+        type: 'ai_analysis_error',
+        message: error.message
+      }
+    });
+  }
+});
+
+// 기본 분석 수행 함수 (AI API 키가 없을 때 사용)
+async function performBasicAnalysis(req, res, owner, repo, commits, contributors, authenticated) {
+  try {
+    console.log(`🔄 [기본 분석] ${owner}/${repo} 기본 분석을 시작합니다`);
+    
     const memUsage = process.memoryUsage();
     console.log(`📊 [메모리 사용량] 분석 시작 시: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
 
@@ -815,11 +1022,11 @@ router.post('/analyze', authenticateToken, async (req, res) => {
 
     const analysis = await Promise.race([analysisPromise, timeoutPromise]);
 
-    console.log(`✅ [레포지토리 분석] ${owner}/${repo} 분석이 완료되었습니다`);
+    console.log(`✅ [기본 분석] ${owner}/${repo} 분석이 완료되었습니다`);
 
     res.json({ analysis });
   } catch (error) {
-    console.error('레포지토리 분석 오류:', error);
+    console.error('기본 분석 오류:', error);
     
     let errorMessage = '레포지토리 분석 중 오류가 발생했습니다';
     if (error.message.includes('시간 초과') || error.message.includes('timeout')) {
@@ -832,12 +1039,12 @@ router.post('/analyze', authenticateToken, async (req, res) => {
       error: errorMessage,
       details: error.message,
       debug: {
-        type: 'analysis_error',
+        type: 'basic_analysis_error',
         message: error.message
       }
     });
   }
-});
+}
 
 // 코드 품질 분석 함수
 function analyzeCodeQuality(commits, contributors) {

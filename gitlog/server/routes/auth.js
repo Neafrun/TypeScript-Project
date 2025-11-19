@@ -6,8 +6,10 @@ const router = express.Router();
 // 환경 변수
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
-const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/$/, '');
+// 배포 환경에서는 https://gitlog-9ysb.onrender.com/api/auth/callback 사용
+// 로컬 환경에서는 http://localhost:5000/api/auth/callback 사용
+const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost:5000/api/auth/callback';
+const CLIENT_URL = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret';
 
 // 환경 변수 디버깅
@@ -15,6 +17,7 @@ console.log('🔍 [환경 변수 확인] 서버 시작 시 환경 변수 상태:
 console.log('GITHUB_CLIENT_ID:', GITHUB_CLIENT_ID ? '설정됨' : '❌ 없음');
 console.log('GITHUB_CLIENT_SECRET:', GITHUB_CLIENT_SECRET ? '설정됨' : '❌ 없음');
 console.log('GITHUB_REDIRECT_URI:', GITHUB_REDIRECT_URI);
+console.log('CLIENT_URL:', CLIENT_URL);
 console.log('JWT_SECRET:', JWT_SECRET ? '설정됨' : '❌ 없음');
 console.log('CLIENT_URL:', CLIENT_URL);
 
