@@ -5,6 +5,8 @@ import Layout from '../components/Layout';
 import { apiPost } from '../api/client';
 import { useTranslation } from '../hooks/useTranslation';
 import { useSearchParams } from 'react-router-dom';
+import UsageCounter from '../components/UsageCounter';
+import PaymentModal from '../components/PaymentModal';
 
 const AnalysisContainer = styled.div`
   min-height: calc(100vh - 200px);
@@ -626,6 +628,7 @@ const AIAnalysis = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeFeedbackTab, setActiveFeedbackTab] = useState('overview');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const shouldAutoAnalyzeRef = useRef(false);
 
   useEffect(() => {
@@ -708,6 +711,17 @@ const AIAnalysis = () => {
         stack: err.stack,
         name: err.name
       });
+      
+      // 결제 필요 오류 (402)
+      if (err.status === 402 || (err.response && err.response.status === 402)) {
+        const errorData = err.data || (err.response && err.response.data) || {};
+        setShowPaymentModal(true);
+        setError(
+          errorData.message || 
+          '무료 분석 2회를 모두 사용했습니다. 구독 플랜을 선택하여 무제한 분석을 이용하세요.'
+        );
+        return;
+      }
       
       // 더 자세한 에러 메시지 표시
       let errorMessage = err.message || t('aiAnalysis.errorAnalysisFailed');
@@ -1112,6 +1126,8 @@ const AIAnalysis = () => {
           <Title>{t('aiAnalysis.titleWithoutEmoji')}</Title>
           <Subtitle>{t('aiAnalysis.subtitle')}</Subtitle>
           
+          {user && <UsageCounter />}
+          
           <RepoInputSection>
             <InputTitle>{t('aiAnalysis.enterRepositoryUrl')}</InputTitle>
             <InputForm onSubmit={analyzeRepository}>
@@ -1178,6 +1194,16 @@ const AIAnalysis = () => {
           {renderAnalysisResults()}
         </AnalysisContent>
       </AnalysisContainer>
+      
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          // 페이지 새로고침하여 사용 횟수 업데이트
+          window.location.reload();
+        }}
+      />
     </Layout>
   );
 };

@@ -6,8 +6,8 @@ const router = express.Router();
 // 환경 변수
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-// 배포 환경에서는 https://gitlog-9ysb.onrender.com/api/auth/callback 사용
 // 로컬 환경에서는 http://localhost:5000/api/auth/callback 사용
+// 배포 환경에서는 환경 변수 GITHUB_REDIRECT_URI로 설정
 const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || 'http://localhost:5000/api/auth/callback';
 const CLIENT_URL = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret';

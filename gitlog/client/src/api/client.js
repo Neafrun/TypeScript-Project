@@ -43,7 +43,15 @@ export async function apiGet(path, options = {}) {
     if (!res.ok) {
       const text = await res.text();
       console.error('❌ [API] GET 응답 에러:', text);
-      throw new Error(`GET ${path} failed: ${res.status} ${text}`);
+      const error = new Error(`GET ${path} failed: ${res.status} ${text}`);
+      error.status = res.status;
+      error.response = { status: res.status, statusText: res.statusText };
+      try {
+        error.data = JSON.parse(text);
+      } catch (e) {
+        error.data = { message: text };
+      }
+      throw error;
     }
     
     return res.json();
@@ -79,7 +87,15 @@ export async function apiPost(path, data, options = {}) {
     if (!res.ok) {
       const text = await res.text();
       console.error('❌ [API] 응답 에러:', text);
-      throw new Error(`POST ${path} failed: ${res.status} ${text}`);
+      const error = new Error(`POST ${path} failed: ${res.status} ${text}`);
+      error.status = res.status;
+      error.response = { status: res.status, statusText: res.statusText };
+      try {
+        error.data = JSON.parse(text);
+      } catch (e) {
+        error.data = { message: text };
+      }
+      throw error;
     }
     
     const result = await res.json();

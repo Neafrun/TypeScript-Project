@@ -7,6 +7,14 @@ const path = require('path');
 // dotenv 설정 - 현재 디렉토리에서 .env 파일 로드
 require('dotenv').config();
 
+// 데이터베이스 초기화
+try {
+  initDatabase();
+  console.log('✅ [데이터베이스] 초기화 완료');
+} catch (error) {
+  console.error('❌ [데이터베이스] 초기화 실패:', error);
+}
+
 // 환경 변수 디버깅
 console.log('🔍 [환경 변수 확인] 서버 시작 시 환경 변수 상태:');
 console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID ? '설정됨' : '❌ 없음');
@@ -22,6 +30,10 @@ const authRoutes = require('./routes/auth');
 const githubRoutes = require('./routes/github');
 const repositoryRoutes = require('./routes/repository');
 const aiRoutes = require('./routes/ai');
+const userRoutes = require('./routes/user');
+const paymentRoutes = require('./routes/payment');
+const adminRoutes = require('./routes/admin');
+const { initDatabase } = require('./db/database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -89,6 +101,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/repository', repositoryRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 정적 파일 제공 (React 빌드 결과)
 app.use(express.static(CLIENT_BUILD_PATH));
