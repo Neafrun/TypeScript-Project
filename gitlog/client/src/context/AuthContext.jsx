@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading, setLoading] = useState(true);
-  const API_BASE = process.env.REACT_APP_API_URL || '';
+  const API_BASE = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
 
   useEffect(() => {
     // 사용자가 이미 로그인되어 있는지 확인

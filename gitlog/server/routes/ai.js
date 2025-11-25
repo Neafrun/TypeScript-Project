@@ -3,6 +3,8 @@ const router = express.Router();
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { analyzeWithOpenAI, analyzeWithGemini } = require('./ai-helpers');
+const checkAnalysisLimit = require('../middleware/checkAnalysisLimit');
+const { updateAnalysisUsage } = require('../db/database');
 
 // 더미 데이터 사용 여부 (환경 변수로 제어 가능)
 // 제거하려면: USE_DUMMY_DATA=false로 설정하거나 이 부분을 삭제하세요
@@ -75,8 +77,8 @@ const callGitHubAPI = async (url, accessToken) => {
 
 // AI 분석 함수는 ai-helpers.js에서 import하여 사용
 
-// AI 분석 엔드포인트 (인증 필요)
-router.post('/analyze', authenticateToken, async (req, res) => {
+// AI 분석 엔드포인트 (인증 필요, 분석 횟수 체크)
+router.post('/analyze', authenticateToken, checkAnalysisLimit, async (req, res) => {
   try {
     // 사용 가능한 API 키에 따라 기본 모델 자동 선택
     const defaultModel = process.env.OPENAI_API_KEY ? 'openai' : 
@@ -182,6 +184,15 @@ router.post('/analyze', authenticateToken, async (req, res) => {
     }
 
     console.log(`✅ [AI 분석] ${owner}/${repo} 분석이 완료되었습니다`);
+
+    // 분석 완료 후 사용 기록 업데이트
+    try {
+      updateAnalysisUsage(req.user.id, req.user.login);
+      console.log('✅ [AI 분석] 사용 기록 업데이트 완료');
+    } catch (error) {
+      console.error('⚠️ [AI 분석] 사용 기록 업데이트 실패:', error);
+      // 분석은 성공했으므로 계속 진행
+    }
 
     res.json({
       success: true,

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import styled, { ThemeProvider } from 'styled-components';
 import GlobalStyle from './styles/GlobalStyle';
@@ -21,12 +21,27 @@ import { API_BASE_URL } from './api/client';
 // API 경로 리다이렉트 컴포넌트
 const APIRedirect = () => {
   const location = useLocation();
+  const [hasRedirected, setHasRedirected] = useState(false);
   
   useEffect(() => {
+    // 이미 리다이렉트했으면 다시 하지 않음
+    if (hasRedirected) return;
+    
+    // API_BASE_URL이 현재 origin과 같으면 리다이렉트하지 않음 (무한 루프 방지)
+    const currentOrigin = window.location.origin;
+    const apiOrigin = API_BASE_URL ? new URL(API_BASE_URL).origin : currentOrigin;
+    
+    if (apiOrigin === currentOrigin) {
+      console.warn('⚠️ [APIRedirect] API_BASE_URL이 현재 origin과 같아 리다이렉트하지 않습니다');
+      return;
+    }
+    
     // 현재 경로를 백엔드 서버로 리다이렉트
     const backendUrl = `${API_BASE_URL}${location.pathname}${location.search}`;
+    console.log('🔄 [APIRedirect] 백엔드로 리다이렉트:', backendUrl);
+    setHasRedirected(true);
     window.location.href = backendUrl;
-  }, [location]);
+  }, [location, hasRedirected]);
 
   return (
     <div style={{ padding: '20px', textAlign: 'center' }}>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import LanguageToggle from './LanguageToggle';
+import PaymentModal from './PaymentModal';
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
@@ -188,6 +189,32 @@ const DropdownItem = styled.a`
   }
 `;
 
+const SubscribeButton = styled.button`
+  background: #ff6b35;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  letter-spacing: -0.01em;
+  
+  &:hover {
+    background: #ff8c42;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
 
 const Separator = styled.div`
   height: 1px;
@@ -201,6 +228,7 @@ const Header = () => {
   const { t } = useTranslation();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const dropdownRef = useRef(null);
 
   // 드롭다운 외부 클릭 시 닫기
@@ -233,38 +261,50 @@ const Header = () => {
                 {t('common.loading')}
               </StartButton>
             ) : user ? (
-              <ProfileSection ref={dropdownRef}>
-                <Avatar 
-                  src={user.avatar_url} 
-                  alt={user.login}
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                />
-                {isDropdownOpen && (
-                  <DropdownMenu>
-                    <DropdownHeader>
-                      <UserName>{user.name || user.login}</UserName>
-                      <UserGitHub 
-                        onClick={() => window.open(user.html_url, '_blank')}
-                        title="Open GitHub Profile"
-                      >
-                        {user.html_url}
-                      </UserGitHub>
-                    </DropdownHeader>
-                    <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
-                      {t('navigation.dashboard')}
-                    </DropdownItem>
-                    <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/repository-analysis'); }}>
-                      {t('navigation.analysis')}
-                    </DropdownItem>
-                    <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/ai-analysis'); }}>
-                      {t('navigation.aiAnalysis')}
-                    </DropdownItem>
-                    <DropdownItem href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
-                      {t('navigation.logout')}
-                    </DropdownItem>
-                  </DropdownMenu>
-                )}
-              </ProfileSection>
+              <>
+                <SubscribeButton 
+                  onClick={() => setShowPaymentModal(true)}
+                  style={{ marginRight: '1rem' }}
+                >
+                  💳 구독하기
+                </SubscribeButton>
+                <ProfileSection ref={dropdownRef}>
+                  <Avatar 
+                    src={user.avatar_url} 
+                    alt={user.login}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  />
+                  {isDropdownOpen && (
+                    <DropdownMenu>
+                      <DropdownHeader>
+                        <UserName>{user.name || user.login}</UserName>
+                        <UserGitHub 
+                          onClick={() => window.open(user.html_url, '_blank')}
+                          title="Open GitHub Profile"
+                        >
+                          {user.html_url}
+                        </UserGitHub>
+                      </DropdownHeader>
+                      <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
+                        {t('navigation.dashboard')}
+                      </DropdownItem>
+                      <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/repository-analysis'); }}>
+                        {t('navigation.analysis')}
+                      </DropdownItem>
+                      <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/ai-analysis'); }}>
+                        {t('navigation.aiAnalysis')}
+                      </DropdownItem>
+                      <Separator style={{ margin: '4px 0' }} />
+                      <DropdownItem href="#" onClick={(e) => { e.preventDefault(); setShowPaymentModal(true); setIsDropdownOpen(false); }}>
+                        💳 구독하기
+                      </DropdownItem>
+                      <DropdownItem href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
+                        {t('navigation.logout')}
+                      </DropdownItem>
+                    </DropdownMenu>
+                  )}
+                </ProfileSection>
+              </>
             ) : (
               <StartButton 
                 href="#" 
@@ -283,6 +323,15 @@ const Header = () => {
         </HeaderContent>
       </HeaderContainer>
       <Separator />
+      
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          window.location.reload();
+        }}
+      />
     </>
   );
 };

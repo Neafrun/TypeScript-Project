@@ -1,0 +1,38 @@
+{
+  "users": {
+    "116786689": {
+      "user_id": 116786689,
+      "github_login": "Neafrun",
+      "analysis_count": 3,
+      "free_analysis_used": 2,
+      "is_premium": 1,
+      "premium_expires_at": "2025-12-25T06:39:02.394Z",
+      "created_at": "2025-11-25T06:32:41.471Z",
+      "updated_at": "2025-11-25T06:39:02.398Z"
+    }
+  },
+  "payments": [],
+  "creators": [
+    {
+      "github_login": "Neafrun",
+      "github_user_id": 0,
+      "name": null,
+      "role": "creator",
+      "created_at": "2025-11-25T06:32:41.468Z"
+    },
+    {
+      "github_login": "user2",
+      "github_user_id": 0,
+      "name": null,
+      "role": "creator",
+      "created_at": "2025-11-25T06:32:41.468Z"
+    },
+    {
+      "github_login": "user3",
+      "github_user_id": 0,
+      "name": null,
+      "role": "creator",
+      "created_at": "2025-11-25T06:32:41.468Z"
+    }
+  ]
+}
