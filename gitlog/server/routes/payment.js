@@ -36,7 +36,7 @@ const PLANS = {
     duration: 30 // 일
   },
   annual: {
-    name: '연간',
+    name: '연간 프로',
     price: 99000,
     analysisLimit: -1, // 무제한
     duration: 420 // 일 (14개월)

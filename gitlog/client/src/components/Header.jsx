@@ -27,13 +27,16 @@ const HeaderContent = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
+  overflow: hidden;
+  min-width: 0;
 `;
 
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 0;
 `;
 
 const LogoImage = styled.img`
@@ -50,23 +53,27 @@ const Logo = styled.h1`
 
 const Nav = styled.nav`
   display: flex;
-  gap: 3rem;
+  gap: 2rem;
   align-items: center;
-  flex: 2;
+  flex: 1 1 auto;
   justify-content: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const NavLink = styled.a`
   color: #000;
   text-decoration: none;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   transition: all 0.2s;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  white-space: nowrap;
 
   &:hover {
     opacity: 0.7;
@@ -103,8 +110,9 @@ const RightSection = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 1;
+  flex: 0 0 auto;
   justify-content: flex-end;
+  min-width: 0;
 `;
 
 const Avatar = styled.img`
@@ -194,8 +202,8 @@ const SubscribeButton = styled.button`
   background: ${props => props.premium ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ff6b35'};
   color: white;
   border: none;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 8px 14px;
+  font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
@@ -205,6 +213,8 @@ const SubscribeButton = styled.button`
   -moz-user-select: none;
   -ms-user-select: none;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
   
   &:hover {
     background: ${props => props.premium ? 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)' : '#ff8c42'};
@@ -479,7 +489,7 @@ const Header = () => {
                   onClick={() => isPremium ? setShowSubscriptionModal(true) : setShowPaymentModal(true)}
                   style={{ marginRight: '1rem' }}
                 >
-                  {isPremium ? '✨ 프리미엄 구독중' : '💳 구독하기'}
+                  {isPremium ? '✨ 프리미엄' : '💳 구독하기'}
                 </SubscribeButton>
                 <ProfileSection ref={dropdownRef}>
                   <Avatar 
@@ -517,7 +527,7 @@ const Header = () => {
                         }
                         setIsDropdownOpen(false); 
                       }}>
-                        {isPremium ? '✨ 프리미엄 구독중' : '💳 구독하기'}
+                        {isPremium ? '✨ 프리미엄 관리' : '💳 구독하기'}
                       </DropdownItem>
                       <DropdownItem href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
                         {t('navigation.logout')}
