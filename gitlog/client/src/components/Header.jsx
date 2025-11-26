@@ -129,15 +129,14 @@ const Avatar = styled.img`
 
 const DropdownMenu = styled.div`
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   right: 0;
   background: white;
   border: 1px solid #d1d5da;
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
   min-width: 200px;
-  z-index: 1000;
-  margin-top: 8px;
+  z-index: 10000;
   overflow: hidden;
 `;
 
@@ -452,7 +451,9 @@ const Header = () => {
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
-    if (!isDropdownOpen) return;
+    if (!isDropdownOpen) {
+      return;
+    }
 
     const handleClickOutside = (event) => {
       // ProfileSection 내부 클릭은 무시 (드롭다운 토글을 위해)
@@ -461,10 +462,15 @@ const Header = () => {
       }
     };
 
-    // 드롭다운이 열려있을 때만 이벤트 리스너 추가
-    document.addEventListener('mousedown', handleClickOutside);
+    // 마이크로태스크를 사용하여 Avatar onClick이 먼저 실행되도록 보장
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        document.addEventListener('click', handleClickOutside, true);
+      }, 0);
+    });
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside, true);
     };
   }, [isDropdownOpen]);
   return (
@@ -497,8 +503,13 @@ const Header = () => {
                     src={user.avatar_url} 
                     alt={user.login}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      setIsDropdownOpen(!isDropdownOpen);
+                      setIsDropdownOpen(prev => !prev);
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                     }}
                   />
                   {isDropdownOpen && (

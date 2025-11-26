@@ -11,7 +11,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  // 개발 환경에서는 자동 로그인 비활성화 (선택적)
+  const DISABLE_AUTO_LOGIN = process.env.NODE_ENV === 'development' && process.env.REACT_APP_DISABLE_AUTO_LOGIN === 'true';
+  
   const [user, setUser] = useState(() => {
+    // 개발 환경에서 자동 로그인 비활성화 옵션이 켜져있으면 null 반환
+    if (DISABLE_AUTO_LOGIN) {
+      return null;
+    }
     try {
       const cached = localStorage.getItem('gitlog_user');
       return cached ? JSON.parse(cached) : null;
@@ -21,6 +28,10 @@ export const AuthProvider = ({ children }) => {
   });
   // eslint-disable-next-line no-unused-vars
   const [token, setToken] = useState(() => {
+    // 개발 환경에서 자동 로그인 비활성화 옵션이 켜져있으면 null 반환
+    if (DISABLE_AUTO_LOGIN) {
+      return null;
+    }
     try {
       return localStorage.getItem('gitlog_token');
     } catch (_) {
@@ -31,6 +42,14 @@ export const AuthProvider = ({ children }) => {
   const API_BASE = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
 
   useEffect(() => {
+    // 개발 환경에서 자동 로그인 비활성화 옵션이 켜져있으면 인증 확인 건너뛰기
+    if (DISABLE_AUTO_LOGIN) {
+      setUser(null);
+      setToken(null);
+      setLoading(false);
+      return;
+    }
+
     // 사용자가 이미 로그인되어 있는지 확인
     const checkAuth = async () => {
       if (!token) {
@@ -51,6 +70,7 @@ export const AuthProvider = ({ children }) => {
           setUser(userData);
           try { localStorage.setItem('gitlog_user', JSON.stringify(userData)); } catch (_) {}
         } else {
+          // 토큰이 유효하지 않으면 자동으로 제거
           setUser(null);
           setToken(null);
           try { 
@@ -72,7 +92,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuth();
-  }, [API_BASE, token]);
+  }, [API_BASE, token, DISABLE_AUTO_LOGIN]);
 
   const login = () => {
     try {
