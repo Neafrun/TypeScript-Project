@@ -1197,6 +1197,8 @@ const RepositoryAnalysis = () => {
         }
       }
       
+      // 에러 발생 시 분석 데이터 초기화
+      setAnalysis(null);
       setError(errorMessage);
     } finally {
       console.log('🔄 [프론트엔드] 로딩 상태 해제');
@@ -1208,13 +1210,14 @@ const RepositoryAnalysis = () => {
   // URL 파라미터가 있을 때 자동으로 분석 시작
   useEffect(() => {
     const repoParam = searchParams.get('repo');
-    if (repoParam && repositoryUrl && !loading && !analysis) {
+    // 에러가 없고, 로딩 중이 아니고, 분석 데이터가 없을 때만 자동 분석 시작
+    if (repoParam && repositoryUrl && !loading && !analysis && !error) {
       // 자동으로 분석 시작
       setTimeout(() => {
         handleAnalyze();
       }, 500);
     }
-  }, [searchParams, repositoryUrl, loading, analysis]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, repositoryUrl, loading, analysis, error]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Layout>
