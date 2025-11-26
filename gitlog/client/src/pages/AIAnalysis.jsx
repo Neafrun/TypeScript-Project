@@ -704,6 +704,11 @@ const AIAnalysis = () => {
         type: analysisType,
         data: response
       });
+
+      // 사용 현황 업데이트 이벤트 발생 (UsageCounter가 자동으로 갱신)
+      if (isAuthenticated) {
+        window.dispatchEvent(new CustomEvent('usageUpdate'));
+      }
     } catch (err) {
       console.error('❌ [AI 분석] 오류:', err);
       console.error('❌ [AI 분석] 오류 상세:', {

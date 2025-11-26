@@ -113,18 +113,34 @@ const RightSection = styled.div`
   min-width: 0;
 `;
 
-const Avatar = styled.img`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+const AvatarWrapper = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   transition: all 0.2s ease;
   border: 2px solid transparent;
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.3);
-    transform: scale(1.05);
   }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const Avatar = styled.img`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: block;
+  pointer-events: none;
 `;
 
 const DropdownMenu = styled.div`
@@ -462,15 +478,14 @@ const Header = () => {
       }
     };
 
-    // 마이크로태스크를 사용하여 Avatar onClick이 먼저 실행되도록 보장
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        document.addEventListener('click', handleClickOutside, true);
-      }, 0);
-    });
+    // 드롭다운이 열린 후에 외부 클릭 핸들러 추가 (Avatar 클릭 후 실행되도록 지연)
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
 
     return () => {
-      document.removeEventListener('click', handleClickOutside, true);
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [isDropdownOpen]);
   return (
@@ -499,19 +514,20 @@ const Header = () => {
                   {isPremium ? '✨ 프리미엄' : '💳 구독하기'}
                 </SubscribeButton>
                 <ProfileSection ref={dropdownRef}>
-                  <Avatar 
-                    src={user.avatar_url} 
-                    alt={user.login}
+                  <AvatarWrapper
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setIsDropdownOpen(prev => !prev);
                     }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  />
+                    type="button"
+                    aria-label="프로필 메뉴"
+                  >
+                    <Avatar 
+                      src={user.avatar_url} 
+                      alt={user.login}
+                    />
+                  </AvatarWrapper>
                   {isDropdownOpen && (
                     <DropdownMenu>
                       <DropdownHeader>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../api/client';
@@ -178,15 +178,8 @@ const UsageCounter = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchUsage();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
 
-  const fetchUsage = async () => {
+  const fetchUsage = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiGet('/api/user/usage');
@@ -196,7 +189,29 @@ const UsageCounter = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchUsage();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchUsage]);
+
+  // AI 분석 완료 시 사용 현황 자동 업데이트
+  useEffect(() => {
+    if (!user) return;
+    
+    const handleUsageUpdate = () => {
+      fetchUsage();
+    };
+
+    window.addEventListener('usageUpdate', handleUsageUpdate);
+    return () => {
+      window.removeEventListener('usageUpdate', handleUsageUpdate);
+    };
+  }, [user, fetchUsage]);
 
   const handleCancelSubscription = async () => {
     try {
