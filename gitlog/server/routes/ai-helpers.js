@@ -430,8 +430,8 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
 }`;
   }
 
-  // 직접 사용할 모델 지정 (속도 개선을 위해 모델 확인 과정 생략)
-  const models = ['gemini-2.0-flash-exp', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+  // 직접 사용할 모델 지정 (가장 빠른 성공 가능성이 높은 모델 우선)
+  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
   
   console.log(`📋 [Gemini API] 사용 모델 목록: ${models.join(', ')}`);
 

@@ -851,7 +851,7 @@ router.post('/public/analyze', async (req, res) => {
     // 타임아웃 설정 (60초 - AI API 호출 시간 고려)
     const analysisPromise = new Promise(async (resolve, reject) => {
       try {
-        console.log(`🤖 [AI 분석] ${aiModel} 모델을 사용하여 분석을 시작합니다...`);
+        console.log(`[AI 분석] ${aiModel} 모델을 사용하여 분석을 시작합니다...`);
         
         let aiAnalysis;
         if (aiModel === 'openai') {
@@ -993,7 +993,7 @@ router.post('/analyze', authenticateToken, async (req, res) => {
     // 타임아웃 설정 (60초 - AI API 호출 시간 고려)
     const analysisPromise = new Promise(async (resolve, reject) => {
       try {
-        console.log(`🤖 [AI 분석] ${aiModel} 모델을 사용하여 분석을 시작합니다...`);
+        console.log(`[AI 분석] ${aiModel} 모델을 사용하여 분석을 시작합니다...`);
         
         let aiAnalysis;
         if (aiModel === 'openai') {

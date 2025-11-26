@@ -90,7 +90,7 @@ router.post('/analyze', authenticateToken, checkAnalysisLimit, async (req, res) 
     }
     const accessToken = req.user.githubAccessToken;
 
-    console.log(`🤖 [AI 분석] ${owner}/${repo} 분석을 시작합니다 (모델: ${model}, 유형: ${analysisType})`);
+    console.log(`[AI 분석] ${owner}/${repo} 분석을 시작합니다 (모델: ${model}, 유형: ${analysisType})`);
 
     if (!owner || !repo) {
       return res.status(400).json({ error: 'Owner and repo are required' });
@@ -240,7 +240,7 @@ router.post('/public/analyze', async (req, res) => {
       model = defaultModel;
     }
 
-    console.log(`🤖 [공개 AI 분석] ${owner}/${repo} 분석을 시작합니다 (모델: ${model}, 유형: ${analysisType})`);
+    console.log(`[공개 AI 분석] ${owner}/${repo} 분석을 시작합니다 (모델: ${model}, 유형: ${analysisType})`);
 
     if (!owner || !repo) {
       console.warn('⚠️ [공개 AI 분석] Owner 또는 repo가 없습니다');
