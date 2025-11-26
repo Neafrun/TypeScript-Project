@@ -7,6 +7,9 @@ const path = require('path');
 // dotenv 설정 - 현재 디렉토리에서 .env 파일 로드
 require('dotenv').config();
 
+// 데이터베이스 모듈 import (다른 라우트보다 먼저)
+const { initDatabase } = require('./db/database');
+
 // 데이터베이스 초기화
 try {
   initDatabase();
@@ -33,7 +36,6 @@ const aiRoutes = require('./routes/ai');
 const userRoutes = require('./routes/user');
 const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
-const { initDatabase } = require('./db/database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;

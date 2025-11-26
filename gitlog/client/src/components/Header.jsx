@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import LanguageToggle from './LanguageToggle';
 import PaymentModal from './PaymentModal';
+import { apiGet, apiPost } from '../api/client';
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
@@ -190,7 +191,7 @@ const DropdownItem = styled.a`
 `;
 
 const SubscribeButton = styled.button`
-  background: #ff6b35;
+  background: ${props => props.premium ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ff6b35'};
   color: white;
   border: none;
   padding: 8px 16px;
@@ -206,13 +207,172 @@ const SubscribeButton = styled.button`
   letter-spacing: -0.01em;
   
   &:hover {
-    background: #ff8c42;
+    background: ${props => props.premium ? 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)' : '#ff8c42'};
     transform: translateY(-1px);
   }
   
   &:active {
     transform: translateY(0);
   }
+`;
+
+const SubscriptionModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+`;
+
+const SubscriptionContent = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 450px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+`;
+
+const SubscriptionHeader = styled.div`
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const SubscriptionTitle = styled.h2`
+  margin: 0;
+  color: #191f28;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+`;
+
+const SubscriptionBody = styled.div`
+  padding: 24px;
+`;
+
+const SubscriptionInfo = styled.div`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  color: white;
+  margin-bottom: 24px;
+`;
+
+const SubscriptionStatus = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+`;
+
+const SubscriptionExpiry = styled.div`
+  font-size: 14px;
+  opacity: 0.9;
+`;
+
+const SubscriptionActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ActionButton = styled.button`
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  
+  &.cancel {
+    background: #f7f8fa;
+    color: #191f28;
+    
+    &:hover {
+      background: #e5e8eb;
+    }
+  }
+  
+  &.subscribe {
+    background: #ff6b35;
+    color: white;
+    
+    &:hover {
+      background: #ff8c42;
+    }
+  }
+  
+  &.unsubscribe {
+    background: #fff;
+    color: #ff6b35;
+    border: 1.5px solid #ff6b35;
+    
+    &:hover {
+      background: #fff5f2;
+    }
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ConfirmCancelModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  padding: 1rem;
+`;
+
+const ConfirmCancelContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+`;
+
+const ConfirmCancelTitle = styled.h3`
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #191f28;
+`;
+
+const ConfirmCancelMessage = styled.p`
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #8b95a1;
+  line-height: 1.6;
+`;
+
+const ConfirmCancelButtons = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 `;
 
 
@@ -229,7 +389,59 @@ const Header = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [usage, setUsage] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const dropdownRef = useRef(null);
+
+  // 사용자 구독 상태 가져오기
+  useEffect(() => {
+    if (user) {
+      fetchUsage();
+    } else {
+      setUsage(null);
+    }
+  }, [user]);
+
+  const fetchUsage = async () => {
+    try {
+      setUsageLoading(true);
+      const response = await apiGet('/api/user/usage');
+      setUsage(response);
+    } catch (error) {
+      console.error('❌ [구독 상태] 조회 실패:', error);
+      setUsage(null);
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      setCancelling(true);
+      const response = await apiPost('/api/payment/cancel', {});
+      
+      if (response.success) {
+        console.log('✅ [구독 취소] 구독 취소 완료');
+        setShowCancelConfirm(false);
+        setShowSubscriptionModal(false);
+        await fetchUsage();
+        alert('구독이 취소되었습니다.');
+        window.location.reload();
+      } else {
+        alert(response.error || '구독 취소에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('❌ [구독 취소] 오류:', error);
+      alert(error.message || '구독 취소 중 오류가 발생했습니다.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const isPremium = usage?.isPremium && usage?.isPremiumActive;
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -263,10 +475,11 @@ const Header = () => {
             ) : user ? (
               <>
                 <SubscribeButton 
-                  onClick={() => setShowPaymentModal(true)}
+                  premium={isPremium}
+                  onClick={() => isPremium ? setShowSubscriptionModal(true) : setShowPaymentModal(true)}
                   style={{ marginRight: '1rem' }}
                 >
-                  💳 구독하기
+                  {isPremium ? '✨ 프리미엄 구독중' : '💳 구독하기'}
                 </SubscribeButton>
                 <ProfileSection ref={dropdownRef}>
                   <Avatar 
@@ -295,8 +508,16 @@ const Header = () => {
                         {t('navigation.aiAnalysis')}
                       </DropdownItem>
                       <Separator style={{ margin: '4px 0' }} />
-                      <DropdownItem href="#" onClick={(e) => { e.preventDefault(); setShowPaymentModal(true); setIsDropdownOpen(false); }}>
-                        💳 구독하기
+                      <DropdownItem href="#" onClick={(e) => { 
+                        e.preventDefault(); 
+                        if (isPremium) {
+                          setShowSubscriptionModal(true);
+                        } else {
+                          setShowPaymentModal(true);
+                        }
+                        setIsDropdownOpen(false); 
+                      }}>
+                        {isPremium ? '✨ 프리미엄 구독중' : '💳 구독하기'}
                       </DropdownItem>
                       <DropdownItem href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
                         {t('navigation.logout')}
@@ -329,9 +550,110 @@ const Header = () => {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={() => {
           setShowPaymentModal(false);
+          fetchUsage();
           window.location.reload();
         }}
       />
+
+      {/* 구독 관리 모달 */}
+      {showSubscriptionModal && usage && isPremium && (
+        <SubscriptionModal onClick={() => setShowSubscriptionModal(false)}>
+          <SubscriptionContent onClick={(e) => e.stopPropagation()}>
+            <SubscriptionHeader>
+              <SubscriptionTitle>프리미엄 구독 관리</SubscriptionTitle>
+              <button
+                onClick={() => setShowSubscriptionModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#8b95a1',
+                  padding: 0,
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f7f8fa';
+                  e.target.style.color = '#191f28';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'none';
+                  e.target.style.color = '#8b95a1';
+                }}
+              >
+                ×
+              </button>
+            </SubscriptionHeader>
+            <SubscriptionBody>
+              <SubscriptionInfo>
+                <SubscriptionStatus>✨ 프리미엄 구독 중</SubscriptionStatus>
+                {usage.premiumExpiresAt && (
+                  <SubscriptionExpiry>
+                    만료일: {new Date(usage.premiumExpiresAt).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </SubscriptionExpiry>
+                )}
+              </SubscriptionInfo>
+              <SubscriptionActions>
+                <ActionButton
+                  className="unsubscribe"
+                  onClick={() => {
+                    setShowSubscriptionModal(false);
+                    setShowCancelConfirm(true);
+                  }}
+                >
+                  구독 취소
+                </ActionButton>
+                <ActionButton
+                  className="cancel"
+                  onClick={() => setShowSubscriptionModal(false)}
+                >
+                  닫기
+                </ActionButton>
+              </SubscriptionActions>
+            </SubscriptionBody>
+          </SubscriptionContent>
+        </SubscriptionModal>
+      )}
+
+      {/* 구독 취소 확인 모달 */}
+      {showCancelConfirm && (
+        <ConfirmCancelModal onClick={() => !cancelling && setShowCancelConfirm(false)}>
+          <ConfirmCancelContent onClick={(e) => e.stopPropagation()}>
+            <ConfirmCancelTitle>구독 취소 확인</ConfirmCancelTitle>
+            <ConfirmCancelMessage>
+              정말 구독을 취소하시겠습니까?<br />
+              구독을 취소하면 즉시 프리미엄 기능을 사용할 수 없게 됩니다.<br />
+              이미 지불한 금액에 대한 환불은 지원되지 않습니다.
+            </ConfirmCancelMessage>
+            <ConfirmCancelButtons>
+              <ActionButton 
+                className="cancel" 
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancelling}
+              >
+                취소
+              </ActionButton>
+              <ActionButton 
+                className="subscribe" 
+                onClick={handleCancelSubscription}
+                disabled={cancelling}
+              >
+                {cancelling ? '처리 중...' : '구독 취소'}
+              </ActionButton>
+            </ConfirmCancelButtons>
+          </ConfirmCancelContent>
+        </ConfirmCancelModal>
+      )}
     </>
   );
 };
