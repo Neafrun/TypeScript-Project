@@ -381,29 +381,38 @@ router.get('/repos/:owner/:repo/issues', async (req, res) => {
       return res.status(401).json({ error: 'GitHub access token not found in JWT' });
     }
 
-    // Open Issues 가져오기
-    const openIssues = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+    // Open Issues 가져오기 (Pull Requests 제외)
+    const openIssuesResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues`, {
       headers: {
         'Authorization': `Bearer ${githubAccessToken}`,
         'Accept': 'application/vnd.github.v3+json'
       },
-      params: { state: 'open', per_page: 100 }
+      params: { 
+        state: 'open', 
+        per_page: 100
+      }
     });
 
-    // Closed Issues 가져오기
-    const closedIssues = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+    // Closed Issues 가져오기 (Pull Requests 제외)
+    const closedIssuesResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues`, {
       headers: {
         'Authorization': `Bearer ${githubAccessToken}`,
         'Accept': 'application/vnd.github.v3+json'
       },
-      params: { state: 'closed', per_page: 100 }
+      params: { 
+        state: 'closed', 
+        per_page: 100
+      }
     });
 
-    const allIssues = [...openIssues.data, ...closedIssues.data];
+    // Pull Requests 필터링 (혹시 모를 경우를 대비)
+    const openIssues = openIssuesResponse.data.filter(issue => !issue.pull_request);
+    const closedIssues = closedIssuesResponse.data.filter(issue => !issue.pull_request);
+    const allIssues = [...openIssues, ...closedIssues];
     
     // 버그와 기능 요청 분류
     const bugs = allIssues.filter(issue => 
-      issue.labels.some(label => 
+      issue.labels && issue.labels.some(label => 
         label.name.toLowerCase().includes('bug') || 
         label.name.toLowerCase().includes('error') ||
         label.name.toLowerCase().includes('fix')
@@ -411,7 +420,7 @@ router.get('/repos/:owner/:repo/issues', async (req, res) => {
     );
 
     const features = allIssues.filter(issue => 
-      issue.labels.some(label => 
+      issue.labels && issue.labels.some(label => 
         label.name.toLowerCase().includes('feature') || 
         label.name.toLowerCase().includes('enhancement') ||
         label.name.toLowerCase().includes('improvement')
@@ -419,29 +428,43 @@ router.get('/repos/:owner/:repo/issues', async (req, res) => {
     );
 
     // 평균 해결 시간 계산
-    const avgResolutionTime = closedIssues.data.length > 0 ? 
-      closedIssues.data.reduce((sum, issue) => {
-        if (issue.created_at && issue.closed_at) {
-          const created = new Date(issue.created_at);
-          const closed = new Date(issue.closed_at);
-          return sum + (closed - created);
-        }
-        return sum;
-      }, 0) / closedIssues.data.length : 0;
+    const closedWithDates = closedIssues.filter(issue => issue.created_at && issue.closed_at);
+    const avgResolutionTime = closedWithDates.length > 0 ? 
+      closedWithDates.reduce((sum, issue) => {
+        const created = new Date(issue.created_at);
+        const closed = new Date(issue.closed_at);
+        return sum + (closed - created);
+      }, 0) / closedWithDates.length : 0;
 
     res.json({
-      open: openIssues.data.length,
-      closed: closedIssues.data.length,
+      open: openIssues.length,
+      closed: closedIssues.length,
       bugs: bugs.length,
       features: features.length,
       avgResolutionTime: avgResolutionTime > 0 ? Math.round(avgResolutionTime / (1000 * 60 * 60 * 24)) : 'N/A'
     });
 
   } catch (error) {
-    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Issues를 가져오는 중 오류:`, error.message);
-    res.status(500).json({
+    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Issues를 가져오는 중 오류:`, {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    
+    // 404 에러는 Issues가 없는 경우일 수 있으므로 빈 데이터 반환
+    if (error.response?.status === 404) {
+      return res.json({
+        open: 0,
+        closed: 0,
+        bugs: 0,
+        features: 0,
+        avgResolutionTime: 'N/A'
+      });
+    }
+    
+    res.status(error.response?.status || 500).json({
       error: 'Failed to fetch issues',
-      message: error.message
+      message: error.message || 'Issues 데이터를 가져오는 중 오류가 발생했습니다.'
     });
   }
 });
@@ -483,22 +506,21 @@ router.get('/repos/:owner/:repo/actions/workflows', async (req, res) => {
       params: { per_page: 100 }
     });
 
-    const totalWorkflows = workflows.data.total_count;
-    const activeWorkflows = workflows.data.workflows.filter(w => w.state === 'active').length;
+    const totalWorkflows = workflows.data.total_count || 0;
+    const activeWorkflows = workflows.data.workflows ? workflows.data.workflows.filter(w => w.state === 'active').length : 0;
     
-    const successfulRuns = runs.data.workflow_runs.filter(run => run.conclusion === 'success').length;
-    const totalRuns = runs.data.workflow_runs.length;
+    const workflowRuns = runs.data.workflow_runs || [];
+    const successfulRuns = workflowRuns.filter(run => run.conclusion === 'success').length;
+    const totalRuns = workflowRuns.length;
     const successRate = totalRuns > 0 ? Math.round((successfulRuns / totalRuns) * 100) : 0;
 
-    const avgDuration = totalRuns > 0 ? 
-      runs.data.workflow_runs.reduce((sum, run) => {
-        if (run.created_at && run.updated_at) {
-          const created = new Date(run.created_at);
-          const updated = new Date(run.updated_at);
-          return sum + (updated - created);
-        }
-        return sum;
-      }, 0) / totalRuns : 0;
+    const runsWithDates = workflowRuns.filter(run => run.created_at && run.updated_at);
+    const avgDuration = runsWithDates.length > 0 ? 
+      runsWithDates.reduce((sum, run) => {
+        const created = new Date(run.created_at);
+        const updated = new Date(run.updated_at);
+        return sum + (updated - created);
+      }, 0) / runsWithDates.length : 0;
 
     res.json({
       total: totalWorkflows,
@@ -508,10 +530,25 @@ router.get('/repos/:owner/:repo/actions/workflows', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Actions 워크플로우를 가져오는 중 오류:`, error.message);
-    res.status(500).json({
+    console.error(`❌ [GitHub API 오류] ${req.params.owner}/${req.params.repo} Actions 워크플로우를 가져오는 중 오류:`, {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    
+    // 404 에러는 Actions가 활성화되지 않았거나 워크플로우가 없는 경우일 수 있으므로 빈 데이터 반환
+    if (error.response?.status === 404) {
+      return res.json({
+        total: 0,
+        active: 0,
+        successRate: 0,
+        avgDuration: 'N/A'
+      });
+    }
+    
+    res.status(error.response?.status || 500).json({
       error: 'Failed to fetch workflows',
-      message: error.message
+      message: error.message || 'Workflows 데이터를 가져오는 중 오류가 발생했습니다.'
     });
   }
 });

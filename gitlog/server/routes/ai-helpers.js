@@ -197,7 +197,8 @@ Format your response in JSON with the following structure:
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 60000 // 60초 타임아웃 (Render.com 환경 고려)
       }
     );
 
@@ -443,6 +444,9 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
       
       console.log(`[Gemini API] v1/${model} 모델 시도 중...`);
       
+      // 분석 유형에 따라 타임아웃 조정 (ai-feedback은 더 복잡하므로 더 긴 타임아웃)
+      const timeout = analysisType === 'ai-feedback' ? 90000 : 60000; // ai-feedback: 90초, 기타: 60초
+      
       const response = await axios.post(
         apiUrl,
         {
@@ -456,7 +460,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 20000 // 20초 타임아웃 (속도 개선)
+          timeout: timeout
         }
       );
 
@@ -499,6 +503,11 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
       // - 모델을 찾을 수 없음 (404, 400 with "not found")
       // - 일시적인 과부하 (503, 429)
       // - 서버 오류 (500, 502, 504) - 다른 모델이 작동할 수 있음
+      // - 타임아웃 에러 (ECONNABORTED 또는 timeout 메시지) - 다른 모델 시도
+      const isTimeoutError = error.code === 'ECONNABORTED' || 
+                             error.message?.toLowerCase().includes('timeout') ||
+                             errorMsg?.toLowerCase().includes('timeout');
+      
       const shouldTryNextModel = errorStatus === 404 || 
                                   errorStatus === 400 ||
                                   errorStatus === 429 || // Rate limit (다음 모델 시도)
@@ -506,6 +515,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
                                   errorStatus === 500 ||
                                   errorStatus === 502 ||
                                   errorStatus === 504 ||
+                                  isTimeoutError || // 타임아웃 에러도 다음 모델 시도
                                   (errorMsg && errorMsg.toLowerCase().includes('not found')) ||
                                   (errorMsg && errorMsg.toLowerCase().includes('not supported')) ||
                                   (errorMsg && errorMsg.toLowerCase().includes('overloaded')) ||
@@ -515,6 +525,8 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
         // 다음 모델 시도
         if (errorStatus === 503 || errorStatus === 429) {
           console.log(`[Gemini API] ${model} 모델이 과부하 상태입니다. 다음 모델을 시도합니다...`);
+        } else if (isTimeoutError) {
+          console.log(`[Gemini API] ${model} 모델에서 타임아웃이 발생했습니다. 다음 모델을 시도합니다...`);
         }
         continue;
       }

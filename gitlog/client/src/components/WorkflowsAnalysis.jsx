@@ -110,11 +110,26 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
         fetchedRepoRef.current = repoKey;
         
         const response = await apiGet(`/api/github/repos/${owner}/${repo}/actions/workflows`);
-        setData(response);
+        setData(response || {
+          total: 0,
+          active: 0,
+          successRate: 0,
+          avgDuration: 'N/A'
+        });
       } catch (err) {
         console.error('Workflows 데이터 가져오기 실패:', err);
-        setError('Workflows 데이터를 가져오는 중 오류가 발생했습니다.');
-        fetchedRepoRef.current = null;
+        // 404 에러는 Actions가 활성화되지 않았거나 워크플로우가 없는 경우이므로 빈 데이터로 처리
+        if (err.response?.status === 404) {
+          setData({
+            total: 0,
+            active: 0,
+            successRate: 0,
+            avgDuration: 'N/A'
+          });
+        } else {
+          setError('Workflows 데이터를 가져오는 중 오류가 발생했습니다.');
+          fetchedRepoRef.current = null;
+        }
       } finally {
         setLoading(false);
       }
@@ -154,26 +169,24 @@ const WorkflowsAnalysis = ({ repoInfo }) => {
       </Header>
       <Description>{t('analysis.githubFeatures.workflowsDescription')}</Description>
       
-      {data && (
-        <DataGrid>
-          <DataItem>
-            <DataValue>{data.total || 0}</DataValue>
-            <DataLabel>Total</DataLabel>
-          </DataItem>
-          <DataItem>
-            <DataValue>{data.active || 0}</DataValue>
-            <DataLabel>Active</DataLabel>
-          </DataItem>
-          <DataItem>
-            <DataValue>{data.successRate ? `${data.successRate}%` : 'N/A'}</DataValue>
-            <DataLabel>Success Rate</DataLabel>
-          </DataItem>
-          <DataItem>
-            <DataValue>{data.avgDuration || 'N/A'}</DataValue>
-            <DataLabel>Avg Duration</DataLabel>
-          </DataItem>
-        </DataGrid>
-      )}
+      <DataGrid>
+        <DataItem>
+          <DataValue>{data?.total || 0}</DataValue>
+          <DataLabel>Total</DataLabel>
+        </DataItem>
+        <DataItem>
+          <DataValue>{data?.active || 0}</DataValue>
+          <DataLabel>Active</DataLabel>
+        </DataItem>
+        <DataItem>
+          <DataValue>{data?.successRate ? `${data.successRate}%` : 'N/A'}</DataValue>
+          <DataLabel>Success Rate</DataLabel>
+        </DataItem>
+        <DataItem>
+          <DataValue>{data?.avgDuration || 'N/A'}</DataValue>
+          <DataLabel>Avg Duration</DataLabel>
+        </DataItem>
+      </DataGrid>
     </Container>
   );
 };

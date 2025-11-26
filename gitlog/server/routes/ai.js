@@ -67,7 +67,10 @@ const callGitHubAPI = async (url, accessToken) => {
       headers['Authorization'] = `token ${token}`;
     }
     
-    const response = await axios.get(url, { headers });
+    const response = await axios.get(url, { 
+      headers,
+      timeout: 30000 // 30초 타임아웃
+    });
     return response.data;
   } catch (error) {
     console.error('GitHub API 호출 오류:', error.response?.data || error.message);
@@ -79,6 +82,9 @@ const callGitHubAPI = async (url, accessToken) => {
 
 // AI 분석 엔드포인트 (인증 필요, 분석 횟수 체크)
 router.post('/analyze', authenticateToken, checkAnalysisLimit, async (req, res) => {
+  // Render.com 요청 타임아웃 고려 (기본 30초, 최대 60초)
+  req.setTimeout(60000); // 60초
+  
   try {
     // 사용 가능한 API 키에 따라 기본 모델 자동 선택
     const defaultModel = process.env.OPENAI_API_KEY ? 'openai' : 
@@ -214,11 +220,41 @@ router.post('/analyze', authenticateToken, checkAnalysisLimit, async (req, res) 
     });
 
   } catch (error) {
-    console.error('AI 분석 오류:', error);
+    console.error('❌ [AI 분석] 오류 발생:', error);
+    console.error('❌ [AI 분석] 오류 상세:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      response: error.response?.data
+    });
+    
+    // 타임아웃 에러 처리
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      return res.status(504).json({
+        error: 'Request timeout',
+        message: 'AI 분석 요청이 시간 초과되었습니다. 다시 시도해주세요.'
+      });
+    }
+    
+    // 네트워크 에러 처리
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({
+        error: 'Service unavailable',
+        message: 'AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'
+      });
+    }
+    
+    // API 키 관련 에러
+    if (error.message && (error.message.includes('API key') || error.message.includes('authentication'))) {
+      return res.status(500).json({
+        error: 'API configuration error',
+        message: 'AI API 설정에 문제가 있습니다. 관리자에게 문의하세요.'
+      });
+    }
     
     res.status(500).json({
       error: 'AI analysis failed',
-      message: error.message,
+      message: error.message || 'AI 분석 중 오류가 발생했습니다.',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -226,6 +262,9 @@ router.post('/analyze', authenticateToken, checkAnalysisLimit, async (req, res) 
 
 // 공개 레포지토리 AI 분석 엔드포인트 (인증 불필요)
 router.post('/public/analyze', async (req, res) => {
+  // Render.com 요청 타임아웃 고려 (기본 30초, 최대 60초)
+  req.setTimeout(60000); // 60초
+  
   try {
     console.log('📥 [공개 AI 분석] 요청 받음:', req.method, req.url);
     console.log('📥 [공개 AI 분석] 요청 본문:', JSON.stringify(req.body, null, 2));
@@ -359,11 +398,41 @@ router.post('/public/analyze', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('공개 AI 분석 오류:', error);
+    console.error('❌ [공개 AI 분석] 오류 발생:', error);
+    console.error('❌ [공개 AI 분석] 오류 상세:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      response: error.response?.data
+    });
+    
+    // 타임아웃 에러 처리
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      return res.status(504).json({
+        error: 'Request timeout',
+        message: 'AI 분석 요청이 시간 초과되었습니다. 다시 시도해주세요.'
+      });
+    }
+    
+    // 네트워크 에러 처리
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({
+        error: 'Service unavailable',
+        message: 'AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'
+      });
+    }
+    
+    // API 키 관련 에러
+    if (error.message && (error.message.includes('API key') || error.message.includes('authentication'))) {
+      return res.status(500).json({
+        error: 'API configuration error',
+        message: 'AI API 설정에 문제가 있습니다. 관리자에게 문의하세요.'
+      });
+    }
     
     res.status(500).json({
       error: 'AI analysis failed',
-      message: error.message,
+      message: error.message || 'AI 분석 중 오류가 발생했습니다.',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }

@@ -110,11 +110,28 @@ const IssuesAnalysis = ({ repoInfo }) => {
         fetchedRepoRef.current = repoKey;
         
         const response = await apiGet(`/api/github/repos/${owner}/${repo}/issues`);
-        setData(response);
+        setData(response || {
+          open: 0,
+          closed: 0,
+          bugs: 0,
+          features: 0,
+          avgResolutionTime: 'N/A'
+        });
       } catch (err) {
         console.error('Issues 데이터 가져오기 실패:', err);
-        setError('Issues 데이터를 가져오는 중 오류가 발생했습니다.');
-        fetchedRepoRef.current = null;
+        // 404 에러는 Issues가 없는 경우이므로 빈 데이터로 처리
+        if (err.response?.status === 404) {
+          setData({
+            open: 0,
+            closed: 0,
+            bugs: 0,
+            features: 0,
+            avgResolutionTime: 'N/A'
+          });
+        } else {
+          setError('Issues 데이터를 가져오는 중 오류가 발생했습니다.');
+          fetchedRepoRef.current = null;
+        }
       } finally {
         setLoading(false);
       }
@@ -154,26 +171,24 @@ const IssuesAnalysis = ({ repoInfo }) => {
       </Header>
       <Description>{t('analysis.githubFeatures.issuesDescription')}</Description>
       
-      {data && (
-        <DataGrid>
-          <DataItem>
-            <DataValue>{data.open || 0}</DataValue>
-            <DataLabel>Open</DataLabel>
-          </DataItem>
-          <DataItem>
-            <DataValue>{data.bugs || 0}</DataValue>
-            <DataLabel>Bug Reports</DataLabel>
-          </DataItem>
-          <DataItem>
-            <DataValue>{data.features || 0}</DataValue>
-            <DataLabel>Features</DataLabel>
-          </DataItem>
-          <DataItem>
-            <DataValue>{data.avgResolutionTime || 'N/A'}</DataValue>
-            <DataLabel>Avg Resolution</DataLabel>
-          </DataItem>
-        </DataGrid>
-      )}
+      <DataGrid>
+        <DataItem>
+          <DataValue>{data?.open || 0}</DataValue>
+          <DataLabel>Open</DataLabel>
+        </DataItem>
+        <DataItem>
+          <DataValue>{data?.bugs || 0}</DataValue>
+          <DataLabel>Bug Reports</DataLabel>
+        </DataItem>
+        <DataItem>
+          <DataValue>{data?.features || 0}</DataValue>
+          <DataLabel>Features</DataLabel>
+        </DataItem>
+        <DataItem>
+          <DataValue>{data?.avgResolutionTime || 'N/A'}</DataValue>
+          <DataLabel>Avg Resolution</DataLabel>
+        </DataItem>
+      </DataGrid>
     </Container>
   );
 };
