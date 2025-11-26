@@ -433,7 +433,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
   // 직접 사용할 모델 지정 (가장 빠른 성공 가능성이 높은 모델 우선)
   const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
   
-  console.log(`📋 [Gemini API] 사용 모델 목록: ${models.join(', ')}`);
+  console.log(`[Gemini API] 사용 모델 목록: ${models.join(', ')}`);
 
   let lastError = null;
 
@@ -441,7 +441,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
     try {
       const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
       
-      console.log(`🔄 [Gemini API] v1/${model} 모델 시도 중...`);
+      console.log(`[Gemini API] v1/${model} 모델 시도 중...`);
       
       const response = await axios.post(
         apiUrl,
@@ -462,7 +462,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
 
       const content = response.data.candidates[0].content.parts[0].text;
       
-      console.log(`✅ [Gemini API] v1/${model} 모델로 성공적으로 분석 완료`);
+      console.log(`[Gemini API] v1/${model} 모델로 성공적으로 분석 완료`);
       
       // JSON 파싱 시도
       try {
@@ -483,12 +483,12 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
       lastError = error;
       const errorMsg = error.response?.data?.error?.message || error.message;
       const errorStatus = error.response?.status;
-      console.warn(`⚠️ [Gemini API] v1/${model} 모델 실패 (${errorStatus}): ${errorMsg}`);
+      console.warn(`[Gemini API] v1/${model} 모델 실패 (${errorStatus}): ${errorMsg}`);
       
       // 즉시 중단해야 하는 에러: 인증/권한 문제
       const isAuthError = errorStatus === 401 || errorStatus === 403;
       if (isAuthError) {
-        console.error('❌ [Gemini API] 인증 오류:', error.response?.data || error.message);
+        console.error('[Gemini API] 인증 오류:', error.response?.data || error.message);
         if (error.response?.data?.error) {
           throw new Error(`Gemini API key authentication failed: ${error.response.data.error.message || error.message}`);
         }
@@ -514,13 +514,13 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
       if (shouldTryNextModel) {
         // 다음 모델 시도
         if (errorStatus === 503 || errorStatus === 429) {
-          console.log(`⏳ [Gemini API] ${model} 모델이 과부하 상태입니다. 다음 모델을 시도합니다...`);
+          console.log(`[Gemini API] ${model} 모델이 과부하 상태입니다. 다음 모델을 시도합니다...`);
         }
         continue;
       }
       
       // 예상치 못한 에러는 중단
-      console.error('❌ [Gemini API] 예상치 못한 오류:', error.response?.data || error.message);
+      console.error('[Gemini API] 예상치 못한 오류:', error.response?.data || error.message);
       if (error.response?.data?.error) {
         throw new Error(`Gemini API error: ${error.response.data.error.message || error.message}`);
       }
@@ -529,7 +529,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
   }
 
   // 모든 모델 시도 실패
-  console.error('Gemini API 오류: 모든 모델 시도 실패', lastError?.response?.data || lastError?.message);
+  console.error('[Gemini API] 모든 모델 시도 실패', lastError?.response?.data || lastError?.message);
   if (lastError?.response?.data?.error) {
     throw new Error(`Gemini API error: 모든 모델 시도 실패 - ${lastError.response.data.error.message || lastError.message}`);
   }

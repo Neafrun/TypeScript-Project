@@ -452,17 +452,21 @@ const Header = () => {
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
+    if (!isDropdownOpen) return;
+
     const handleClickOutside = (event) => {
+      // ProfileSection 내부 클릭은 무시 (드롭다운 토글을 위해)
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
     };
 
+    // 드롭다운이 열려있을 때만 이벤트 리스너 추가
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isDropdownOpen]);
   return (
     <>
       <HeaderContainer>
@@ -492,7 +496,10 @@ const Header = () => {
                   <Avatar 
                     src={user.avatar_url} 
                     alt={user.login}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDropdownOpen(!isDropdownOpen);
+                    }}
                   />
                   {isDropdownOpen && (
                     <DropdownMenu>
