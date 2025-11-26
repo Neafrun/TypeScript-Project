@@ -23,9 +23,9 @@ const analyzeWithOpenAI = async (repoData, commits, contributors, analysisType =
     branches: branches
   };
 
-  // 최근 커밋 메시지 샘플 (최대 10개)
-  const recentCommitMessages = commits.slice(0, 10).map(commit => 
-    commit.commit?.message?.substring(0, 100) || commit.message?.substring(0, 100) || 'No message'
+  // 최근 커밋 메시지 샘플 (최대 5개로 축소 - 속도 개선)
+  const recentCommitMessages = commits.slice(0, 5).map(commit => 
+    commit.commit?.message?.substring(0, 80) || commit.message?.substring(0, 80) || 'No message'
   ).join('\n');
 
   // 기여자 정보
@@ -191,7 +191,7 @@ Format your response in JSON with the following structure:
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000
+        max_tokens: 3000 // 토큰 수 축소 - 속도 개선
       },
       {
         headers: {
@@ -267,45 +267,8 @@ const analyzeWithGemini = async (repoData, commits, contributors, analysisType =
     throw new Error('Gemini API key is not configured');
   }
 
-  // API 키 검증 및 사용 가능한 모델 확인
-  let availableModels = [];
-  try {
-    console.log('🔍 [Gemini API] 사용 가능한 모델 확인 중...');
-    console.log('🔑 [Gemini API] API 키 확인:', apiKey ? `${apiKey.substring(0, 10)}...` : '없음');
-    
-    const modelsResponse = await axios.get(
-      `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`,
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      }
-    );
-    
-    if (modelsResponse.data && modelsResponse.data.models) {
-      // generateContent를 지원하는 모델만 필터링
-      availableModels = modelsResponse.data.models
-        .filter(model => model.supportedGenerationMethods?.includes('generateContent'))
-        .map(model => model.name.replace('models/', ''))
-        .filter(model => model.startsWith('gemini'));
-      
-      console.log(`✅ [Gemini API] 사용 가능한 모델 ${availableModels.length}개 발견:`, availableModels.slice(0, 5).join(', '));
-    } else {
-      console.warn('⚠️ [Gemini API] 모델 목록 응답이 올바르지 않음');
-    }
-  } catch (error) {
-    const errorMsg = error.response?.data?.error?.message || error.message;
-    const errorStatus = error.response?.status;
-    
-    // API 키 관련 에러면 명확하게 알림
-    if (errorStatus === 400 || errorStatus === 401 || errorStatus === 403) {
-      console.error(`❌ [Gemini API] API 키 인증 실패 (${errorStatus}): ${errorMsg}`);
-      throw new Error(`Gemini API key authentication failed: ${errorMsg}`);
-    }
-    
-    console.warn(`⚠️ [Gemini API] 모델 목록 조회 실패 (${errorStatus}), 기본 모델 목록 사용: ${errorMsg}`);
-  }
+  // 모델 목록 확인 로직 제거 (속도 개선)
+  // 직접 사용할 모델 지정
 
   // 저장소 정보 요약
   const repoSummary = {
@@ -322,9 +285,9 @@ const analyzeWithGemini = async (repoData, commits, contributors, analysisType =
     branches: branches
   };
 
-  // 최근 커밋 메시지 샘플
-  const recentCommitMessages = commits.slice(0, 10).map(commit => 
-    commit.commit?.message?.substring(0, 100) || commit.message?.substring(0, 100) || 'No message'
+  // 최근 커밋 메시지 샘플 (최대 5개로 축소 - 속도 개선)
+  const recentCommitMessages = commits.slice(0, 5).map(commit => 
+    commit.commit?.message?.substring(0, 80) || commit.message?.substring(0, 80) || 'No message'
   ).join('\n');
 
   // 기여자 정보
@@ -467,10 +430,10 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
 }`;
   }
 
-  // v1 API만 사용, gemini-2.5-flash 모델만 사용
-  const models = ['gemini-2.5-flash'];
+  // 직접 사용할 모델 지정 (속도 개선을 위해 모델 확인 과정 생략)
+  const models = ['gemini-2.0-flash-exp', 'gemini-2.5-flash', 'gemini-1.5-flash'];
   
-  console.log(`📋 [Gemini API] 모델: ${models[0]}`);
+  console.log(`📋 [Gemini API] 사용 모델 목록: ${models.join(', ')}`);
 
   let lastError = null;
 
@@ -493,7 +456,7 @@ ${topContributors.map(c => `- ${c.name}: ${c.commits}개 커밋 (${c.percentage}
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 30000 // 30초 타임아웃
+          timeout: 20000 // 20초 타임아웃 (속도 개선)
         }
       );
 

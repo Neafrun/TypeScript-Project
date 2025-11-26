@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTranslation } from '../hooks/useTranslation';
-import LanguageToggle from './LanguageToggle';
 import PaymentModal from './PaymentModal';
 import { apiGet, apiPost } from '../api/client';
 
@@ -395,7 +393,6 @@ const Separator = styled.div`
 const Header = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -475,12 +472,12 @@ const Header = () => {
             <a href="/"><Logo>GitLog</Logo></a>
           </LogoSection>
           <Nav>
-            {user && <NavLink href="/dashboard">{t('navigation.dashboard')}</NavLink>}
-            <NavLink href="/repository-analysis">{t('navigation.analysis')}</NavLink>
-            {user && <NavLink href="/ai-analysis">{t('navigation.aiAnalysis')}</NavLink>}
+            {user && <NavLink href="/dashboard">대시보드</NavLink>}
+            <NavLink href="/repository-analysis">저장소 분석</NavLink>
+            {user && <NavLink href="/ai-analysis">AI 분석</NavLink>}
             {loading ? (
               <StartButton href="#" style={{ opacity: 0.7, cursor: 'not-allowed' }}>
-                {t('common.loading')}
+                로딩 중...
               </StartButton>
             ) : user ? (
               <>
@@ -509,13 +506,13 @@ const Header = () => {
                         </UserGitHub>
                       </DropdownHeader>
                       <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
-                        {t('navigation.dashboard')}
+                        대시보드
                       </DropdownItem>
                       <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/repository-analysis'); }}>
-                        {t('navigation.analysis')}
+                        저장소 분석
                       </DropdownItem>
                       <DropdownItem href="#" onClick={(e) => { e.preventDefault(); navigate('/ai-analysis'); }}>
-                        {t('navigation.aiAnalysis')}
+                        AI 분석
                       </DropdownItem>
                       <Separator style={{ margin: '4px 0' }} />
                       <DropdownItem href="#" onClick={(e) => { 
@@ -530,7 +527,7 @@ const Header = () => {
                         {isPremium ? '✨ 프리미엄 관리' : '💳 구독하기'}
                       </DropdownItem>
                       <DropdownItem href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
-                        {t('navigation.logout')}
+                        로그아웃
                       </DropdownItem>
                     </DropdownMenu>
                   )}
@@ -544,12 +541,11 @@ const Header = () => {
                   navigate('/login');
                 }}
               >
-                {t('navigation.login')}
+                로그인
               </StartButton>
             )}
           </Nav>
           <RightSection>
-            <LanguageToggle />
           </RightSection>
         </HeaderContent>
       </HeaderContainer>
