@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../components/Layout';
@@ -588,11 +588,21 @@ const RepositoryAnalysis = () => {
     ? chatMessages.filter((message) => message.repo === currentRepoKey)
     : [];
   
+  const contributorListFetchedRef = useRef(null);
+
   // 레포지토리 기여자 목록 가져오기 (분석 데이터 또는 API에서)
   useEffect(() => {
     const fetchContributorList = async () => {
       if (!repoInfo || !isLoggedIn) {
         setContributorList([]);
+        contributorListFetchedRef.current = null;
+        return;
+      }
+
+      const repoKey = `${repoInfo.owner}/${repoInfo.repo}`;
+      
+      // 이미 같은 저장소의 기여자 목록을 가져왔으면 다시 가져오지 않음
+      if (contributorListFetchedRef.current === repoKey) {
         return;
       }
       
@@ -600,7 +610,7 @@ const RepositoryAnalysis = () => {
       
       try {
         // 1. 먼저 분석 데이터에서 기여자 목록 추출 시도
-        if (analysisData) {
+        if (analysisData && analysisData.contributionPattern) {
           const distribution = analysisData.contributionPattern?.distribution || 
                                analysisData.contributionPattern?.metrics?.distribution || [];
           
@@ -613,6 +623,7 @@ const RepositoryAnalysis = () => {
           
           if (contributors.length > 0) {
             setContributorList(contributors);
+            contributorListFetchedRef.current = repoKey;
             console.log('✅ [기여자 확인] 분석 데이터에서 기여자 목록 가져옴:', contributors);
             setCheckingContributor(false);
             return;
@@ -620,6 +631,13 @@ const RepositoryAnalysis = () => {
         }
         
         // 2. 분석 데이터에 기여자 정보가 없으면 커밋 통계 API에서 가져오기 (실제 커밋 데이터 기반)
+        // 하지만 분석이 진행 중이면 분석 완료를 기다림 (분석 데이터에서 가져오는 것이 더 정확함)
+        if (!analysisData && loading) {
+          console.log('⏳ [기여자 확인] 분석 진행 중이므로 기여자 목록 가져오기 대기');
+          setCheckingContributor(false);
+          return;
+        }
+        
         try {
           const baseEndpoint = isLoggedIn ? '/api/repository' : '/api/repository';
           const contributorsData = await apiGet(`${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
@@ -633,6 +651,7 @@ const RepositoryAnalysis = () => {
             .filter(Boolean);
           
           setContributorList(contributors);
+          contributorListFetchedRef.current = repoKey;
           console.log('✅ [기여자 확인] 커밋 통계 API에서 기여자 목록 가져옴:', contributors);
         } catch (apiError) {
           console.warn('⚠️ [기여자 확인] 커밋 통계 API에서 기여자 목록 가져오기 실패, 대체 방법 시도:', apiError);
@@ -647,6 +666,7 @@ const RepositoryAnalysis = () => {
               .filter(Boolean);
             
             setContributorList(contributors);
+            contributorListFetchedRef.current = repoKey;
             console.log('✅ [기여자 확인] GitHub API에서 기여자 목록 가져옴:', contributors);
           } catch (fallbackError) {
             console.warn('⚠️ [기여자 확인] GitHub API에서도 기여자 목록 가져오기 실패:', fallbackError);
@@ -662,7 +682,17 @@ const RepositoryAnalysis = () => {
     };
     
     fetchContributorList();
-  }, [repoInfo, analysisData, isLoggedIn]);
+  }, [repoInfo, analysisData, isLoggedIn, loading]);
+
+  // repoInfo가 변경되면 fetched 상태 리셋
+  useEffect(() => {
+    if (repoInfo) {
+      const repoKey = `${repoInfo.owner}/${repoInfo.repo}`;
+      if (contributorListFetchedRef.current !== repoKey) {
+        contributorListFetchedRef.current = null;
+      }
+    }
+  }, [repoInfo]);
   
   // 현재 사용자가 레포지토리 기여자인지 확인
   const isCurrentUserContributor = () => {
@@ -1021,21 +1051,27 @@ const RepositoryAnalysis = () => {
         }
       }
 
-      // 4. 기여자 데이터 가져오기
+      // 4. 기여자 데이터 가져오기 (이미 커밋 통계에서 가져왔으면 재사용)
       let contributorsData = [];
       try {
-        console.log('🔍 [프론트엔드] 기여자 데이터를 가져옵니다...');
-        console.log('🔍 [프론트엔드] API 엔드포인트:', `${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
-        
-        // 먼저 인증된 API 시도
-        try {
-          contributorsData = await apiGet(`${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
-          console.log('✅ [프론트엔드] 인증된 API로 기여자 데이터 가져오기 완료:', contributorsData);
-        } catch (authError) {
-          console.warn('⚠️ [프론트엔드] 인증된 API 실패, 공개 API 시도:', authError.message);
-          // 공개 API로 시도
-          contributorsData = await apiGet(`${baseEndpoint}/public/commits/${repoInfo.owner}/${repoInfo.repo}`);
-          console.log('✅ [프론트엔드] 공개 API로 기여자 데이터 가져오기 완료:', contributorsData);
+        // 커밋 통계에서 이미 기여자 데이터를 가져왔으면 재사용
+        if (commitsData && Array.isArray(commitsData) && commitsData.length > 0) {
+          contributorsData = commitsData;
+          console.log('✅ [프론트엔드] 커밋 통계에서 기여자 데이터 재사용:', contributorsData.length);
+        } else {
+          console.log('🔍 [프론트엔드] 기여자 데이터를 가져옵니다...');
+          console.log('🔍 [프론트엔드] API 엔드포인트:', `${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
+          
+          // 먼저 인증된 API 시도
+          try {
+            contributorsData = await apiGet(`${baseEndpoint}/commits/${repoInfo.owner}/${repoInfo.repo}`);
+            console.log('✅ [프론트엔드] 인증된 API로 기여자 데이터 가져오기 완료:', contributorsData);
+          } catch (authError) {
+            console.warn('⚠️ [프론트엔드] 인증된 API 실패, 공개 API 시도:', authError.message);
+            // 공개 API로 시도
+            contributorsData = await apiGet(`${baseEndpoint}/public/commits/${repoInfo.owner}/${repoInfo.repo}`);
+            console.log('✅ [프론트엔드] 공개 API로 기여자 데이터 가져오기 완료:', contributorsData);
+          }
         }
         
         console.log('✅ [프론트엔드] 기여자 데이터 타입:', typeof contributorsData);

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { updateUserSubscription } = require('../db/database');
+const { updateUserSubscription, cancelSubscription } = require('../db/database');
 
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
@@ -136,6 +136,45 @@ router.get('/plans', (req, res) => {
     console.error('❌ [플랜 정보] 조회 오류:', error);
     res.status(500).json({
       error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// 구독 취소
+router.post('/cancel', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const githubLogin = req.user.login;
+
+    console.log(`🔄 [구독 취소] 사용자: ${githubLogin} (ID: ${userId})`);
+
+    // 구독 취소 처리
+    const result = cancelSubscription(userId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.message || '구독 취소에 실패했습니다.'
+      });
+    }
+
+    console.log('✅ [구독 취소] 구독 취소 완료:', {
+      userId,
+      githubLogin,
+      cancelledAt: result.cancelledAt
+    });
+
+    res.json({
+      success: true,
+      message: '구독이 취소되었습니다.',
+      cancelledAt: result.cancelledAt
+    });
+  } catch (error) {
+    console.error('❌ [구독 취소] 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '구독 취소 처리 중 오류가 발생했습니다.',
       message: error.message
     });
   }

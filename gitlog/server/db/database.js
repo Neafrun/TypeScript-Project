@@ -166,6 +166,42 @@ function updateUserSubscription(userId, paymentData) {
   saveDatabase(data);
 }
 
+// 구독 취소
+function cancelSubscription(userId) {
+  const data = loadDatabase();
+  
+  // 사용자 구독 상태 확인
+  const usage = getUserUsage(userId, null);
+  
+  if (!usage.is_premium) {
+    return { success: false, message: '활성화된 구독이 없습니다.' };
+  }
+  
+  // 현재 만료일 확인
+  const now = new Date();
+  const expiresAt = usage.premium_expires_at ? new Date(usage.premium_expires_at) : null;
+  
+  if (expiresAt && expiresAt <= now) {
+    return { success: false, message: '이미 만료된 구독입니다.' };
+  }
+  
+  // 구독 취소 처리: 즉시 만료 처리
+  usage.is_premium = 0;
+  usage.premium_expires_at = now.toISOString(); // 현재 시간으로 만료 처리
+  usage.updated_at = new Date().toISOString();
+  
+  data.users[userId] = usage;
+  saveDatabase(data);
+  
+  console.log(`✅ [구독 취소] 사용자 ${userId}의 구독이 취소되었습니다.`);
+  
+  return { 
+    success: true, 
+    message: '구독이 취소되었습니다.',
+    cancelledAt: now.toISOString()
+  };
+}
+
 // 결제 내역 조회
 function getPayments(userId) {
   const data = loadDatabase();
@@ -228,6 +264,7 @@ module.exports = {
   isCreator,
   savePayment,
   updateUserSubscription,
+  cancelSubscription,
   getPayments,
   getCreators,
   addCreator,
