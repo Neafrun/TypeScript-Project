@@ -15,6 +15,7 @@ const HeaderContainer = styled.header`
   -ms-user-select: none;
   position: relative;
   z-index: 10;
+  overflow: visible;
 `;
 
 const HeaderContent = styled.div`
@@ -25,7 +26,7 @@ const HeaderContent = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
 `;
 
@@ -59,7 +60,7 @@ const Nav = styled.nav`
   justify-content: center;
   flex-wrap: nowrap;
   min-width: 0;
-  overflow: visible;
+  overflow: visible !important;
   position: relative;
 `;
 
@@ -105,7 +106,7 @@ const ProfileSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  z-index: 10001;
+  z-index: 10002;
 `;
 
 const RightSection = styled.div`
@@ -179,11 +180,12 @@ const DropdownMenu = styled.div`
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
   min-width: 200px;
-  z-index: 10000;
+  z-index: 10003 !important;
   overflow: hidden;
-  display: block;
-  visibility: visible;
-  opacity: 1;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 `;
 
 const DropdownHeader = styled.div`
@@ -501,6 +503,9 @@ const Header = () => {
   // 디버깅: user와 드롭다운 상태 확인
   useEffect(() => {
     console.log('🔴 Header 렌더링 - user:', user, 'isDropdownOpen:', isDropdownOpen);
+    if (isDropdownOpen) {
+      console.log('🟣 드롭다운 메뉴가 열려야 합니다!');
+    }
   }, [user, isDropdownOpen]);
 
   // 드롭다운 외부 클릭 시 닫기
@@ -509,22 +514,28 @@ const Header = () => {
       return;
     }
 
+    console.log('🟡 드롭다운이 열렸습니다. 외부 클릭 핸들러 등록');
+
     const handleClickOutside = (event) => {
+      console.log('🟡 외부 클릭 감지:', event.target);
       // ProfileSection 내부 클릭은 무시 (드롭다운 토글을 위해)
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        console.log('🟡 외부 클릭 - 드롭다운 닫기');
         setIsDropdownOpen(false);
+      } else {
+        console.log('🟡 ProfileSection 내부 클릭 - 무시');
       }
     };
 
-    // mousedown 이벤트를 사용하여 click 이벤트보다 먼저 처리
-    // 이렇게 하면 Avatar 클릭 이벤트가 처리된 후에 외부 클릭을 감지할 수 있음
+    // click 이벤트를 사용하되, 약간의 지연을 두어 Avatar 클릭 이벤트가 먼저 처리되도록 함
     const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-    }, 0);
+      console.log('🟡 외부 클릭 핸들러 등록됨');
+      document.addEventListener('click', handleClickOutside, true); // capture phase에서 처리
+    }, 100);
 
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside, true);
     };
   }, [isDropdownOpen]);
   return (
@@ -566,18 +577,17 @@ const Header = () => {
                 <ProfileSection ref={dropdownRef}>
                   <AvatarWrapper
                     onClick={(e) => {
-                      console.log('🔵 AvatarWrapper 클릭됨!', e);
-                      alert('프로필 클릭됨!'); // 임시 디버깅
+                      console.log('🔵 AvatarWrapper 클릭됨! 현재 상태:', isDropdownOpen);
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('🔵 드롭다운 상태 변경 전:', isDropdownOpen);
                       setIsDropdownOpen(prev => {
-                        console.log('🔵 드롭다운 상태 변경:', prev, '->', !prev);
-                        return !prev;
+                        const newState = !prev;
+                        console.log('🔵 드롭다운 상태 변경:', prev, '->', newState);
+                        return newState;
                       });
                     }}
                     onMouseDown={(e) => {
-                      console.log('🟢 AvatarWrapper mousedown!', e);
+                      console.log('🟢 AvatarWrapper mousedown!');
                       // mousedown 이벤트도 전파 중지하여 외부 클릭 핸들러와 충돌 방지
                       e.stopPropagation();
                     }}
@@ -605,7 +615,16 @@ const Header = () => {
                     )}
                   </AvatarWrapper>
                   {isDropdownOpen && (
-                    <DropdownMenu onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu 
+                      onClick={(e) => {
+                        console.log('🟣 드롭다운 메뉴 클릭됨');
+                        e.stopPropagation();
+                      }}
+                      onMouseDown={(e) => {
+                        console.log('🟣 드롭다운 메뉴 mousedown');
+                        e.stopPropagation();
+                      }}
+                    >
                       <DropdownHeader>
                         <UserName>{user.name || user.login}</UserName>
                         <UserGitHub 
