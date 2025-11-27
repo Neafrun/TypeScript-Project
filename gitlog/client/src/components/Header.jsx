@@ -59,7 +59,8 @@ const Nav = styled.nav`
   justify-content: center;
   flex-wrap: nowrap;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 `;
 
 const NavLink = styled.a`
@@ -127,6 +128,9 @@ const AvatarWrapper = styled.button`
   border-radius: 50%;
   transition: all 0.2s ease;
   border: 2px solid transparent;
+  position: relative;
+  z-index: 10002;
+  pointer-events: auto !important;
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.3);
@@ -135,6 +139,10 @@ const AvatarWrapper = styled.button`
   &:focus {
     outline: none;
     border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
@@ -490,6 +498,11 @@ const Header = () => {
 
   const isPremium = usage?.isPremium && usage?.isPremiumActive;
 
+  // 디버깅: user와 드롭다운 상태 확인
+  useEffect(() => {
+    console.log('🔴 Header 렌더링 - user:', user, 'isDropdownOpen:', isDropdownOpen);
+  }, [user, isDropdownOpen]);
+
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
     if (!isDropdownOpen) {
@@ -553,16 +566,28 @@ const Header = () => {
                 <ProfileSection ref={dropdownRef}>
                   <AvatarWrapper
                     onClick={(e) => {
+                      console.log('🔵 AvatarWrapper 클릭됨!', e);
+                      alert('프로필 클릭됨!'); // 임시 디버깅
                       e.preventDefault();
                       e.stopPropagation();
-                      setIsDropdownOpen(prev => !prev);
+                      console.log('🔵 드롭다운 상태 변경 전:', isDropdownOpen);
+                      setIsDropdownOpen(prev => {
+                        console.log('🔵 드롭다운 상태 변경:', prev, '->', !prev);
+                        return !prev;
+                      });
                     }}
                     onMouseDown={(e) => {
+                      console.log('🟢 AvatarWrapper mousedown!', e);
                       // mousedown 이벤트도 전파 중지하여 외부 클릭 핸들러와 충돌 방지
                       e.stopPropagation();
                     }}
                     type="button"
                     aria-label="프로필 메뉴"
+                    style={{ 
+                      pointerEvents: 'auto',
+                      position: 'relative',
+                      zIndex: 10002
+                    }}
                   >
                     {user.avatar_url && !avatarError ? (
                       <Avatar 
