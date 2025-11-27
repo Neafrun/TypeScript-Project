@@ -40,6 +40,8 @@ const LogoSection = styled.div`
 const LogoImage = styled.img`
   width: 32px;
   height: 32px;
+  object-fit: contain;
+  display: block;
 `;
 
 const Logo = styled.h1`
@@ -102,6 +104,7 @@ const ProfileSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  z-index: 10001;
 `;
 
 const RightSection = styled.div`
@@ -141,6 +144,22 @@ const Avatar = styled.img`
   border-radius: 50%;
   display: block;
   pointer-events: none;
+  object-fit: cover;
+  background-color: rgba(255, 255, 255, 0.2);
+`;
+
+const AvatarPlaceholder = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  pointer-events: none;
 `;
 
 const DropdownMenu = styled.div`
@@ -154,6 +173,9 @@ const DropdownMenu = styled.div`
   min-width: 200px;
   z-index: 10000;
   overflow: hidden;
+  display: block;
+  visibility: visible;
+  opacity: 1;
 `;
 
 const DropdownHeader = styled.div`
@@ -416,14 +438,17 @@ const Header = () => {
   const [usage, setUsage] = useState(null);
   const [usageLoading, setUsageLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const dropdownRef = useRef(null);
 
   // 사용자 구독 상태 가져오기
   useEffect(() => {
     if (user) {
       fetchUsage();
+      setAvatarError(false); // 사용자가 변경되면 아바타 에러 상태 초기화
     } else {
       setUsage(null);
+      setAvatarError(false);
     }
   }, [user]);
 
@@ -478,14 +503,15 @@ const Header = () => {
       }
     };
 
-    // 드롭다운이 열린 후에 외부 클릭 핸들러 추가 (Avatar 클릭 후 실행되도록 지연)
+    // mousedown 이벤트를 사용하여 click 이벤트보다 먼저 처리
+    // 이렇게 하면 Avatar 클릭 이벤트가 처리된 후에 외부 클릭을 감지할 수 있음
     const timeoutId = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside);
-    }, 100);
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
 
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isDropdownOpen]);
   return (
@@ -493,8 +519,19 @@ const Header = () => {
       <HeaderContainer>
         <HeaderContent>
           <LogoSection>
-            <a href="/"><LogoImage src="/gitlog.png" alt="GitLog Logo" /></a>
-            <a href="/"><Logo>GitLog</Logo></a>
+            <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
+              <LogoImage 
+                src="/gitlog.png" 
+                alt="GitLog Logo"
+                onError={(e) => {
+                  console.error('로고 이미지 로드 실패');
+                  e.target.style.display = 'none';
+                }}
+              />
+            </a>
+            <a href="/" style={{ textDecoration: 'none' }}>
+              <Logo>GitLog</Logo>
+            </a>
           </LogoSection>
           <Nav>
             {user && <NavLink href="/dashboard">대시보드</NavLink>}
@@ -520,16 +557,30 @@ const Header = () => {
                       e.stopPropagation();
                       setIsDropdownOpen(prev => !prev);
                     }}
+                    onMouseDown={(e) => {
+                      // mousedown 이벤트도 전파 중지하여 외부 클릭 핸들러와 충돌 방지
+                      e.stopPropagation();
+                    }}
                     type="button"
                     aria-label="프로필 메뉴"
                   >
-                    <Avatar 
-                      src={user.avatar_url} 
-                      alt={user.login}
-                    />
+                    {user.avatar_url && !avatarError ? (
+                      <Avatar 
+                        src={user.avatar_url} 
+                        alt={user.login || user.name || 'User'}
+                        onError={(e) => {
+                          console.error('아바타 이미지 로드 실패:', user.avatar_url);
+                          setAvatarError(true);
+                        }}
+                      />
+                    ) : (
+                      <AvatarPlaceholder>
+                        {(user.login || user.name || 'U').charAt(0).toUpperCase()}
+                      </AvatarPlaceholder>
+                    )}
                   </AvatarWrapper>
                   {isDropdownOpen && (
-                    <DropdownMenu>
+                    <DropdownMenu onClick={(e) => e.stopPropagation()}>
                       <DropdownHeader>
                         <UserName>{user.name || user.login}</UserName>
                         <UserGitHub 
